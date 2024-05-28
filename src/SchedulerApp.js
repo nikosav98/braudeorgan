@@ -42,6 +42,17 @@ const typeToColorMap = {
   // Add more types and colors as needed
 };
 
+// Map for Hebrew days to Israeli weekdays
+const dayMap = {
+  "א": 0, // Sunday
+  "ב": 1, // Monday
+  "ג": 2, // Tuesday
+  "ד": 3, // Wednesday
+  "ה": 4, // Thursday
+  "ו": 5, // Friday
+  "ש": 6, // Saturday
+};
+
 const DayScaleCell = ({ startDate }) => (
   <TableCell>
     <span>
@@ -58,6 +69,7 @@ class SchedulerApp extends React.PureComponent {
       selectedCourse: "", // State for the selected course
       selectedLecture: "", // State for the selected lecture
       selectedLectureType: "", // State for the selected lecture type
+      selectedDayOfWeek: "", // State for the selected day of the week
       data: [], // Empty array to start with an empty schedule
     };
   }
@@ -71,28 +83,28 @@ class SchedulerApp extends React.PureComponent {
   };
 
   handleLectureChange = (event) => {
-    this.setState({
-      selectedLecture: event.target.value,
-      selectedLectureType: this.getLectureById(event.target.value).type,
-    });
-
     const lectureId = event.target.value;
     const lecture = this.getLectureById(lectureId);
-    if (lecture && !this.isLectureAdded(lectureId)) {
+
+    const adjustedLecture = this.adjustLectureDate(lecture);
+
+    this.setState({
+      selectedLecture: lectureId,
+      selectedLectureType: adjustedLecture.type,
+      selectedDayOfWeek: Intl.DateTimeFormat("en-US", { weekday: "short" }).format(
+        adjustedLecture.startDate
+      ),
+    });
+
+    if (adjustedLecture && !this.isLectureAdded(lectureId)) {
       const newAppointment = {
-        id: lecture.id,
-        title: lecture.title,
-        startDate: new Date().setHours(
-          lecture.startDate.getHours(),
-          lecture.startDate.getMinutes()
-        ), // Set hours and minutes only
-        endDate: new Date().setHours(
-          lecture.endDate.getHours(),
-          lecture.endDate.getMinutes()
-        ), // Set hours and minutes only
-        type: lecture.type,
-        location: lecture.location,
-        lecturer: lecture.lecturer,
+        id: adjustedLecture.id,
+        title: adjustedLecture.title,
+        startDate: adjustedLecture.startDate,
+        endDate: adjustedLecture.endDate,
+        type: adjustedLecture.type,
+        location: adjustedLecture.location,
+        lecturer: adjustedLecture.lecturer,
       };
       this.setState((prevState) => ({
         data: [...prevState.data, newAppointment],
@@ -116,6 +128,30 @@ class SchedulerApp extends React.PureComponent {
   // Function to get lecture details by ID
   getLectureById = (id) => {
     return initialAppointments.find((lecture) => lecture.id === id);
+  };
+
+  // Function to adjust lecture dates based on the "day" field
+  adjustLectureDate = (lecture) => {
+    const dayOfWeek = dayMap[lecture.day];
+
+    // Get current week's start date (Sunday)
+    const currentDate = new Date();
+    const currentDay = currentDate.getDay();
+    const weekStartDate = new Date(currentDate.setDate(currentDate.getDate() - currentDay));
+
+    // Adjust start and end dates to the correct day of the current week
+    const adjustedStartDate = new Date(weekStartDate);
+    adjustedStartDate.setDate(weekStartDate.getDate() + dayOfWeek);
+    adjustedStartDate.setHours(new Date(lecture.startDate).getHours(), new Date(lecture.startDate).getMinutes());
+
+    const adjustedEndDate = new Date(adjustedStartDate);
+    adjustedEndDate.setHours(new Date(lecture.endDate).getHours(), new Date(lecture.endDate).getMinutes());
+
+    return {
+      ...lecture,
+      startDate: adjustedStartDate,
+      endDate: adjustedEndDate,
+    };
   };
 
   handleExportToExcel = () => {
@@ -152,7 +188,7 @@ class SchedulerApp extends React.PureComponent {
   };
 
   render() {
-    const { data, selectedCourse, selectedLecture, selectedLectureType } = this.state;
+    const { data, selectedCourse, selectedLecture, selectedLectureType, selectedDayOfWeek } = this.state;
 
     // Filter lectures based on selected course
     const filteredLectures = initialAppointments.filter(
@@ -232,11 +268,14 @@ class SchedulerApp extends React.PureComponent {
                   onChange={this.handleLectureChange}
                   label="Select Lecture"
                 >
-                  {filteredLectures.map((lecture) => (
-                    <MenuItem key={lecture.id} value={lecture.id}>
-                      {`${this.formatTime(new Date(lecture.startDate))} - ${this.formatTime(new Date(lecture.endDate))}, ${lecture.type}, ${lecture.lecturer}`}
-                    </MenuItem>
-                  ))}
+                  {filteredLectures.map((lecture) => {
+                    const adjustedLecture = this.adjustLectureDate(lecture);
+                    return (
+                      <MenuItem key={lecture.id} value={lecture.id}>
+                        {`${Intl.DateTimeFormat("en-US", { weekday: "short" }).format(adjustedLecture.startDate)}, ${this.formatTime(adjustedLecture.startDate)} - ${this.formatTime(adjustedLecture.endDate)}, ${lecture.type}, ${lecture.lecturer}`}
+                      </MenuItem>
+                    );
+                  })}
                 </Select>
               </FormControl>
             )}
@@ -250,6 +289,8 @@ class SchedulerApp extends React.PureComponent {
                 >
                   <div
                     style={{
+                      textAlign: "center",
+                      backgroundColor: "transparent",
                       textAlign: "center",
                       backgroundColor: typeToColorMap[appointment.type],
                       borderRadius: 8,
