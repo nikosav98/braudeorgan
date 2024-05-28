@@ -18,6 +18,7 @@ import {
   IconButton,
   Tooltip,
   Button,
+  Typography,
 } from "@mui/material";
 import { Delete } from "@mui/icons-material";
 import { saveAs } from "file-saver";
@@ -28,7 +29,7 @@ import { appointments as initialAppointments } from "./appointments";
 
 const theme = createTheme({
   palette: {
-    mode: "light",
+    mode: "dark",
     primary: blue,
   },
   direction: "rtl", // Set the direction to right-to-left
@@ -54,7 +55,7 @@ const dayMap = {
 };
 
 const DayScaleCell = ({ startDate }) => (
-  <TableCell>
+  <TableCell style={{ borderRight: '1px solid rgba(255, 255, 255, 0.12)' }}>
     <span>
       {Intl.DateTimeFormat("en-US", { weekday: "short" }).format(startDate)}
     </span>
@@ -182,9 +183,9 @@ class SchedulerApp extends React.PureComponent {
     );
   };
 
-  // Helper function to format time without AM/PM tags
+  // Helper function to format time in 24-hour format
   formatTime = (date) => {
-    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
   };
 
   render() {
@@ -197,135 +198,144 @@ class SchedulerApp extends React.PureComponent {
 
     return (
       <ThemeProvider theme={theme}>
-        <Box display="flex" justifyContent="space-between">
-          <Paper style={{ flexGrow: 1, direction: "rtl" }}>
-            <Scheduler data={data}>
-              <ViewState currentDate={new Date()} />
-              <WeekView
-                startDayHour={8}
-                endDayHour={19}
-                dayScaleCellComponent={DayScaleCell}
-              />
-              <Appointments
-                appointmentComponent={(props) => (
-                  <Appointments.Appointment {...props}>
+        <Box display="flex" flexDirection="column" height="100vh">
+          <Box display="flex" justifyContent="space-between" flexGrow={1}>
+            <Paper style={{ flexGrow: 1, direction: "rtl" }}>
+              <Scheduler data={data}>
+                <ViewState currentDate={new Date()} />
+                <WeekView
+                  startDayHour={8}
+                  endDayHour={19}
+                  dayScaleCellComponent={DayScaleCell}
+                  excludedDays={[6]} // Exclude Saturday
+                />
+                <Appointments
+                  appointmentComponent={(props) => (
+                    <Appointments.Appointment {...props}>
+                      <div
+                        style={{
+                          textAlign: "center",
+                          backgroundColor: typeToColorMap[props.data.type],
+                          borderRadius: 8,
+                          padding: 10,
+                          fontSize: '14px', // Increase font size
+                        }}
+                      >
+                        <div>{props.data.title}</div>
+                        <div>{`${this.formatTime(
+                          new Date(props.data.startDate)
+                        )} - ${this.formatTime(new Date(props.data.endDate))}`}</div>
+                        <div>{props.data.type}</div>
+                        <div>{props.data.location}</div>
+                        <div>{props.data.lecturer}</div>
+                        <Tooltip title="Remove">
+                          <IconButton
+                            onClick={() =>
+                              this.handleRemoveAppointment(props.data.id)
+                            }
+                          >
+                            <Delete />
+                          </IconButton>
+                        </Tooltip>
+                      </div>
+                    </Appointments.Appointment>
+                  )}
+                />
+              </Scheduler>
+            </Paper>
+            <Box sx={{ minWidth: 200, marginLeft: 2, marginTop: 4, backgroundColor: theme.palette.background.paper, color: theme.palette.text.primary, padding: 2, borderRadius: 1 }}>
+              <FormControl fullWidth>
+                <InputLabel id="course-dropdown-label">Select Course</InputLabel>
+                <Select
+                  labelId="course-dropdown-label"
+                  id="course-dropdown"
+                  value={selectedCourse}
+                  onChange={this.handleCourseChange}
+                  label="Select Course"
+                >
+                  {Array.from(
+                    new Set(initialAppointments.map((lecture) => lecture.title))
+                  ).map((courseName, index) => (
+                    <MenuItem key={index} value={courseName}>
+                      {courseName}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              {selectedCourse && (
+                <FormControl fullWidth sx={{ mt: 2 }}>
+                  <InputLabel id="lecture-dropdown-label">Select Lecture</InputLabel>
+                  <Select
+                    labelId="lecture-dropdown-label"
+                    id="lecture-dropdown"
+                    value={selectedLecture}
+                    onChange={this.handleLectureChange}
+                    label="Select Lecture"
+                  >
+                    {filteredLectures.map((lecture) => {
+                      const adjustedLecture = this.adjustLectureDate(lecture);
+                      return (
+                        <MenuItem key={lecture.id} value={lecture.id}>
+                          {`${Intl.DateTimeFormat("en-US", { weekday: "short" }).format(adjustedLecture.startDate)}, ${this.formatTime(adjustedLecture.startDate)} - ${this.formatTime(adjustedLecture.endDate)}, ${lecture.type}, ${lecture.lecturer}`}
+                        </MenuItem>
+                      );
+                    })}
+                  </Select>
+                </FormControl>
+              )}
+              <Box mt={2}>
+                {data.map((appointment) => (
+                  <Box
+                    key={appointment.id}
+                    display="flex"
+                    alignItems="center"
+                    justifyContent="space-between"
+                    sx={{ backgroundColor: theme.palette.background.paper, color: theme.palette.text.primary, borderRadius: 1, padding: 1, marginY: 1 }}
+                  >
                     <div
                       style={{
                         textAlign: "center",
-                        backgroundColor: typeToColorMap[props.data.type],
+                        backgroundColor: typeToColorMap[appointment.type],
                         borderRadius: 8,
                         padding: 10,
+                        fontSize: '14px', // Increase font size
                       }}
                     >
-                      <div>{props.data.title}</div>
+                      <div>{appointment.title}</div>
                       <div>{`${this.formatTime(
-                        new Date(props.data.startDate)
-                      )} - ${this.formatTime(new Date(props.data.endDate))}`}</div>
-                      <div>{props.data.type}</div>
-                      <div>{props.data.location}</div>
-                      <div>{props.data.lecturer}</div>
+                        new Date(appointment.startDate)
+                      )} - ${this.formatTime(new Date(appointment.endDate))}`}</div>
+                      <div>{appointment.type}</div>
+                      <div>{appointment.location}</div>
+                      <div>{appointment.lecturer}</div>
                       <Tooltip title="Remove">
                         <IconButton
                           onClick={() =>
-                            this.handleRemoveAppointment(props.data.id)
+                            this.handleRemoveAppointment(appointment.id)
                           }
                         >
                           <Delete />
                         </IconButton>
                       </Tooltip>
                     </div>
-                  </Appointments.Appointment>
-                )}
-              />
-            </Scheduler>
-          </Paper>
-          <Box sx={{ minWidth: 200, marginLeft: 2, marginTop: 4 }}>
-            <FormControl fullWidth>
-              <InputLabel id="course-dropdown-label">Select Course</InputLabel>
-              <Select
-                labelId="course-dropdown-label"
-                id="course-dropdown"
-                value={selectedCourse}
-                onChange={this.handleCourseChange}
-                label="Select Course"
-              >
-                {Array.from(
-                  new Set(initialAppointments.map((lecture) => lecture.title))
-                ).map((courseName, index) => (
-                  <MenuItem key={index} value={courseName}>
-                    {courseName}
-                  </MenuItem>
+                  </Box>
                 ))}
-              </Select>
-            </FormControl>
-            {selectedCourse && (
-              <FormControl fullWidth sx={{ mt: 2 }}>
-                <InputLabel id="lecture-dropdown-label">Select Lecture</InputLabel>
-                <Select
-                  labelId="lecture-dropdown-label"
-                  id="lecture-dropdown"
-                  value={selectedLecture}
-                  onChange={this.handleLectureChange}
-                  label="Select Lecture"
+              </Box>
+              <Box mt={2}>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={this.handleExportToExcel}
                 >
-                  {filteredLectures.map((lecture) => {
-                    const adjustedLecture = this.adjustLectureDate(lecture);
-                    return (
-                      <MenuItem key={lecture.id} value={lecture.id}>
-                        {`${Intl.DateTimeFormat("en-US", { weekday: "short" }).format(adjustedLecture.startDate)}, ${this.formatTime(adjustedLecture.startDate)} - ${this.formatTime(adjustedLecture.endDate)}, ${lecture.type}, ${lecture.lecturer}`}
-                      </MenuItem>
-                    );
-                  })}
-                </Select>
-              </FormControl>
-            )}
-            <Box mt={2}>
-              {data.map((appointment) => (
-                <Box
-                  key={appointment.id}
-                  display="flex"
-                  alignItems="center"
-                  justifyContent="space-between"
-                >
-                  <div
-                    style={{
-                      textAlign: "center",
-                      backgroundColor: "transparent",
-                      textAlign: "center",
-                      backgroundColor: typeToColorMap[appointment.type],
-                      borderRadius: 8,
-                      padding: 10,
-                    }}
-                  >
-                    <div>{appointment.title}</div>
-                    <div>{`${this.formatTime(
-                      new Date(appointment.startDate)
-                    )} - ${this.formatTime(new Date(appointment.endDate))}`}</div>
-                    <div>{appointment.type}</div>
-                    <div>{appointment.location}</div>
-                    <div>{appointment.lecturer}</div>
-                    <Tooltip title="Remove">
-                      <IconButton
-                        onClick={() =>
-                          this.handleRemoveAppointment(appointment.id)
-                        }
-                      >
-                        <Delete />
-                      </IconButton>
-                    </Tooltip>
-                  </div>
-                </Box>
-              ))}
+                  Export Schedule to Excel
+                </Button>
+              </Box>
             </Box>
-            <Box mt={2}>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={this.handleExportToExcel}
-              >
-                Export Schedule to Excel
-              </Button>
-            </Box>
+          </Box>
+          <Box mt={2} textAlign="center">
+            <Typography variant="body2">
+              This website is not affiliated with Ort Braude in any way. Made by Niko
+            </Typography>
           </Box>
         </Box>
       </ThemeProvider>
