@@ -1,4 +1,4 @@
-const lectures = [
+export const appointments = [
     {
         "title": "תכנות מדעי",
         "startDate": new Date(2024, 5, 25, 14, 50),

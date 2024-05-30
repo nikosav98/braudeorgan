@@ -8,23 +8,26 @@ import {
 } from "@devexpress/dx-react-scheduler-material-ui";
 import TableCell from "@mui/material/TableCell";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
-import { blue, green, orange, red } from "@mui/material/colors"; // Import different colors
+import { blue, green, orange, red } from "@mui/material/colors";
 import {
   Box,
   FormControl,
   InputLabel,
   MenuItem,
   Select,
-  IconButton,
-  Tooltip,
   Button,
   Typography,
+  IconButton,
+  Tooltip,
+  Switch,
+  FormControlLabel,
+  TextField,
 } from "@mui/material";
 import { Delete } from "@mui/icons-material";
 import { saveAs } from "file-saver";
 import * as XLSX from "xlsx";
+import CustomAppointment from "./CustomAppointment"; // Import the custom appointment component
 
-// Import your appointments data from a file or define it directly in the same file
 import { appointments as initialAppointments } from "./appointments";
 
 const theme = createTheme({
@@ -32,26 +35,23 @@ const theme = createTheme({
     mode: "dark",
     primary: blue,
   },
-  direction: "rtl", // Set the direction to right-to-left
+  direction: "rtl",
 });
 
-// Map for assigning colors to different types
 const typeToColorMap = {
   lecture: green[500],
   lab: orange[500],
-  seminar: red[500],
-  // Add more types and colors as needed
+  exercise: red[500],
 };
 
-// Map for Hebrew days to Israeli weekdays
 const dayMap = {
-  "א": 0, // Sunday
-  "ב": 1, // Monday
-  "ג": 2, // Tuesday
-  "ד": 3, // Wednesday
-  "ה": 4, // Thursday
-  "ו": 5, // Friday
-  "ש": 6, // Saturday
+  "א": 0,
+  "ב": 1,
+  "ג": 2,
+  "ד": 3,
+  "ה": 4,
+  "ו": 5,
+  "ש": 6,
 };
 
 const DayScaleCell = ({ startDate }) => (
@@ -66,88 +66,161 @@ class SchedulerApp extends React.PureComponent {
   constructor(props) {
     super(props);
 
+    const savedData = JSON.parse(localStorage.getItem("scheduleData")) || [];
+
     this.state = {
-      selectedCourse: "", // State for the selected course
-      selectedLecture: "", // State for the selected lecture
-      selectedLectureType: "", // State for the selected lecture type
-      selectedDayOfWeek: "", // State for the selected day of the week
-      data: [], // Empty array to start with an empty schedule
+      selectedCourse: "",
+      selectedLecture: "",
+      selectedLectureType: "",
+      selectedDayOfWeek: "",
+      data: savedData,
+      selectedAppointment: null, // State to track the selected appointment
+      allowConflicts: false, // State to manage the restriction toggle
+      searchInput: "", // State to manage the search input
     };
   }
 
   handleCourseChange = (event) => {
     this.setState({
       selectedCourse: event.target.value,
-      selectedLecture: "", // Reset selected lecture when course changes
-      selectedLectureType: "", // Reset selected lecture type when course changes
+      selectedLecture: "",
+      selectedLectureType: "",
     });
   };
 
   handleLectureChange = (event) => {
     const lectureId = event.target.value;
     const lecture = this.getLectureById(lectureId);
+    const linkedLecture = lecture ? this.getLectureById(lecture.linkedId) : null;
 
-    const adjustedLecture = this.adjustLectureDate(lecture);
+    const adjustedLecture = lecture ? this.adjustLectureDate(lecture) : null;
+    const adjustedLinkedLecture = linkedLecture ? this.adjustLectureDate(linkedLecture) : null;
+
+    const { data, allowConflicts } = this.state;
+
+    if (!allowConflicts) {
+      const courseAppointments = data.filter(app => app.title === adjustedLecture.title);
+      const existingLecture = courseAppointments.find(app => app.type === 'lecture');
+      const existingExercise = courseAppointments.find(app => app.type === 'exercise');
+      const existingLab = courseAppointments.find(app => app.type === 'lab');
+
+      if (adjustedLecture.type === 'lecture' && existingLecture ||
+          adjustedLecture.type === 'exercise' && existingExercise ||
+          adjustedLecture.type === 'lab' && existingLab) {
+        alert(`Only one of each type (lecture, exercise, lab) can be chosen at a time for the course ${adjustedLecture.title}.`);
+        return;
+      }
+    }
 
     this.setState({
       selectedLecture: lectureId,
       selectedLectureType: adjustedLecture.type,
-      selectedDayOfWeek: Intl.DateTimeFormat("en-US", { weekday: "short" }).format(
-        adjustedLecture.startDate
-      ),
+      selectedDayOfWeek: Intl.DateTimeFormat("en-US", { weekday: "short" }).format(adjustedLecture.startDate),
     });
 
     if (adjustedLecture && !this.isLectureAdded(lectureId)) {
-      const newAppointment = {
-        id: adjustedLecture.id,
-        title: adjustedLecture.title,
-        startDate: adjustedLecture.startDate,
-        endDate: adjustedLecture.endDate,
-        type: adjustedLecture.type,
-        location: adjustedLecture.location,
-        lecturer: adjustedLecture.lecturer,
-      };
-      this.setState((prevState) => ({
-        data: [...prevState.data, newAppointment],
-      }));
+      const newAppointments = [
+        {
+          id: adjustedLecture.id,
+          title: adjustedLecture.title,
+          startDate: adjustedLecture.startDate,
+          endDate: adjustedLecture.endDate,
+          type: adjustedLecture.type,
+          location: adjustedLecture.location,
+          lecturer: adjustedLecture.lecturer,
+          backgroundColor: typeToColorMap[adjustedLecture.type], // Set the background color based on type
+        },
+      ];
+
+      if (adjustedLinkedLecture && !this.isLectureAdded(linkedLecture.id)) {
+        newAppointments.push({
+          id: adjustedLinkedLecture.id,
+          title: adjustedLinkedLecture.title,
+          startDate: adjustedLinkedLecture.startDate,
+          endDate: adjustedLinkedLecture.endDate,
+          type: adjustedLinkedLecture.type,
+          location: adjustedLinkedLecture.location,
+          lecturer: adjustedLinkedLecture.lecturer,
+          backgroundColor: typeToColorMap[adjustedLinkedLecture.type], // Set the background color based on type
+        });
+      }
+
+      this.setState(
+        (prevState) => ({
+          data: [...prevState.data, ...newAppointments],
+        }),
+        this.saveScheduleToLocalStorage
+      );
     }
   };
 
   handleRemoveAppointment = (appointmentId) => {
-    this.setState((prevState) => ({
-      data: prevState.data.filter(
-        (appointment) => appointment.id !== appointmentId
-      ),
-    }));
+    const appointment = this.state.data.find((app) => app.id === appointmentId);
+    const linkedAppointmentId = appointment ? appointment.linkedId : null;
+
+    this.setState(
+      (prevState) => ({
+        data: prevState.data.filter(
+          (app) => app.id !== appointmentId && app.id !== linkedAppointmentId
+        ),
+        selectedAppointment: null, // Reset the selected appointment
+      }),
+      this.saveScheduleToLocalStorage
+    );
   };
 
-  // Function to check if lecture is already added
+  handleAppointmentClick = (appointment) => {
+    this.setState({
+      selectedAppointment: appointment,
+    });
+  };
+
+  handleCancelDeletion = () => {
+    this.setState({
+      selectedAppointment: null,
+    });
+  };
+
+  handleToggleChange = (event) => {
+    this.setState({ allowConflicts: event.target.checked });
+  };
+
+  handleSearchChange = (event) => {
+    this.setState({ searchInput: event.target.value });
+  };
+
   isLectureAdded = (id) => {
     return this.state.data.some((appointment) => appointment.id === id);
   };
 
-  // Function to get lecture details by ID
   getLectureById = (id) => {
     return initialAppointments.find((lecture) => lecture.id === id);
   };
 
-  // Function to adjust lecture dates based on the "day" field
   adjustLectureDate = (lecture) => {
-    const dayOfWeek = dayMap[lecture.day];
-
-    // Get current week's start date (Sunday)
+    const dayOfWeek = dayMap[lecture.day]; // Map lecture day to the appropriate weekday number
+  
+    // Get the current date and reset it to the start of the week (Sunday)
     const currentDate = new Date();
     const currentDay = currentDate.getDay();
     const weekStartDate = new Date(currentDate.setDate(currentDate.getDate() - currentDay));
-
-    // Adjust start and end dates to the correct day of the current week
+  
+    // Set the start date to the correct day of the week
     const adjustedStartDate = new Date(weekStartDate);
     adjustedStartDate.setDate(weekStartDate.getDate() + dayOfWeek);
-    adjustedStartDate.setHours(new Date(lecture.startDate).getHours(), new Date(lecture.startDate).getMinutes());
-
+    
+    // Extract and set the time from the lecture's start date
+    const lectureStartTime = new Date(lecture.startDate);
+    adjustedStartDate.setHours(lectureStartTime.getHours(), lectureStartTime.getMinutes(), 0, 0);
+  
+    // Adjust the end date similarly
     const adjustedEndDate = new Date(adjustedStartDate);
-    adjustedEndDate.setHours(new Date(lecture.endDate).getHours(), new Date(lecture.endDate).getMinutes());
-
+    const lectureEndTime = new Date(lecture.endDate);
+    adjustedEndDate.setHours(lectureEndTime.getHours(), lectureEndTime.getMinutes(), 0, 0);
+  
+    console.log('Original Start:', lecture.startDate, 'Adjusted Start:', adjustedStartDate);
+    console.log('Original End:', lecture.endDate, 'Adjusted End:', adjustedEndDate);
+  
     return {
       ...lecture,
       startDate: adjustedStartDate,
@@ -158,7 +231,6 @@ class SchedulerApp extends React.PureComponent {
   handleExportToExcel = () => {
     const { data } = this.state;
 
-    // Convert data to Excel format
     const worksheet = XLSX.utils.json_to_sheet(
       data.map((appointment) => ({
         TimeSlot: `${this.formatTime(new Date(appointment.startDate))} - ${this.formatTime(new Date(appointment.endDate))}`,
@@ -171,7 +243,6 @@ class SchedulerApp extends React.PureComponent {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Scheduled Courses");
 
-    // Generate a download
     const excelBuffer = XLSX.write(workbook, {
       bookType: "xlsx",
       type: "array",
@@ -183,22 +254,51 @@ class SchedulerApp extends React.PureComponent {
     );
   };
 
-  // Helper function to format time in 24-hour format
   formatTime = (date) => {
     return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
   };
 
-  render() {
-    const { data, selectedCourse, selectedLecture, selectedLectureType, selectedDayOfWeek } = this.state;
+  saveScheduleToLocalStorage = () => {
+    const { data } = this.state;
+    localStorage.setItem("scheduleData", JSON.stringify(data));
+  };
 
-    // Filter lectures based on selected course
+  render() {
+    const { data, selectedCourse, selectedLecture, selectedLectureType, selectedDayOfWeek, selectedAppointment, allowConflicts, searchInput } = this.state;
+
     const filteredLectures = initialAppointments.filter(
       (lecture) => lecture.title === selectedCourse
     );
 
+    const filteredCourses = initialAppointments.filter((lecture) =>
+      lecture.title.toLowerCase().includes(searchInput.toLowerCase())
+    );
+
     return (
       <ThemeProvider theme={theme}>
-        <Box display="flex" flexDirection="column" height="100vh">
+        <Box
+          display="flex"
+          flexDirection="column"
+          height="100vh"
+          sx={{ backgroundColor: theme.palette.background.default }}
+        >
+          <Box className="header-container" display="flex" justifyContent="space-between" alignItems="center" padding={2}>
+            <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
+              Braude schedule organizer (updated 31/05)
+            </Typography>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={allowConflicts}
+                  onChange={this.handleToggleChange}
+                  name="allowConflicts"
+                  color="primary"
+                />
+              }
+              label="הסרת הגבלה על כמות מאותו שיעור"
+              className="switch-label"
+            />
+          </Box>
           <Box display="flex" justifyContent="space-between" flexGrow={1}>
             <Paper style={{ flexGrow: 1, direction: "rtl" }}>
               <Scheduler data={data}>
@@ -207,43 +307,41 @@ class SchedulerApp extends React.PureComponent {
                   startDayHour={8}
                   endDayHour={19}
                   dayScaleCellComponent={DayScaleCell}
-                  excludedDays={[6]} // Exclude Saturday
+                  excludedDays={[6]}
                 />
                 <Appointments
                   appointmentComponent={(props) => (
-                    <Appointments.Appointment {...props}>
-                      <div
-                        style={{
-                          textAlign: "center",
-                          backgroundColor: typeToColorMap[props.data.type],
-                          borderRadius: 8,
-                          padding: 10,
-                          fontSize: '14px', // Increase font size
-                        }}
-                      >
-                        <div>{props.data.title}</div>
-                        <div>{`${this.formatTime(
-                          new Date(props.data.startDate)
-                        )} - ${this.formatTime(new Date(props.data.endDate))}`}</div>
-                        <div>{props.data.type}</div>
-                        <div>{props.data.location}</div>
-                        <div>{props.data.lecturer}</div>
-                        <Tooltip title="Remove">
-                          <IconButton
-                            onClick={() =>
-                              this.handleRemoveAppointment(props.data.id)
-                            }
-                          >
-                            <Delete />
-                          </IconButton>
-                        </Tooltip>
-                      </div>
-                    </Appointments.Appointment>
+                    <CustomAppointment
+                      data={props.data}
+                      formatTime={this.formatTime}
+                      handleRemoveAppointment={this.handleRemoveAppointment}
+                      selectedAppointment={selectedAppointment}
+                      handleAppointmentClick={this.handleAppointmentClick}
+                      handleCancelDeletion={this.handleCancelDeletion}
+                    />
                   )}
                 />
               </Scheduler>
             </Paper>
-            <Box sx={{ minWidth: 200, marginLeft: 2, marginTop: 4, backgroundColor: theme.palette.background.paper, color: theme.palette.text.primary, padding: 2, borderRadius: 1 }}>
+            <Box
+              sx={{
+                minWidth: 200,
+                marginLeft: 2,
+                marginTop: 4,
+                backgroundColor: theme.palette.background.paper,
+                color: theme.palette.text.primary,
+                padding: 2,
+                borderRadius: 1,
+              }}
+            >
+              <TextField
+                fullWidth
+                label="Search Course"
+                variant="outlined"
+                value={searchInput}
+                onChange={this.handleSearchChange}
+                sx={{ marginBottom: 2 }}
+              />
               <FormControl fullWidth>
                 <InputLabel id="course-dropdown-label">Select Course</InputLabel>
                 <Select
@@ -254,7 +352,7 @@ class SchedulerApp extends React.PureComponent {
                   label="Select Course"
                 >
                   {Array.from(
-                    new Set(initialAppointments.map((lecture) => lecture.title))
+                    new Set(filteredCourses.map((lecture) => lecture.title))
                   ).map((courseName, index) => (
                     <MenuItem key={index} value={courseName}>
                       {courseName}
@@ -262,27 +360,32 @@ class SchedulerApp extends React.PureComponent {
                   ))}
                 </Select>
               </FormControl>
-              {selectedCourse && (
-                <FormControl fullWidth sx={{ mt: 2 }}>
-                  <InputLabel id="lecture-dropdown-label">Select Lecture</InputLabel>
-                  <Select
-                    labelId="lecture-dropdown-label"
-                    id="lecture-dropdown"
-                    value={selectedLecture}
-                    onChange={this.handleLectureChange}
-                    label="Select Lecture"
-                  >
-                    {filteredLectures.map((lecture) => {
-                      const adjustedLecture = this.adjustLectureDate(lecture);
-                      return (
-                        <MenuItem key={lecture.id} value={lecture.id}>
-                          {`${Intl.DateTimeFormat("en-US", { weekday: "short" }).format(adjustedLecture.startDate)}, ${this.formatTime(adjustedLecture.startDate)} - ${this.formatTime(adjustedLecture.endDate)}, ${lecture.type}, ${lecture.lecturer}`}
-                        </MenuItem>
-                      );
-                    })}
-                  </Select>
-                </FormControl>
-              )}
+              <FormControl fullWidth sx={{ mt: 2 }}>
+                <InputLabel id="lecture-dropdown-label">Select Lecture</InputLabel>
+                <Select
+                  labelId="lecture-dropdown-label"
+                  id="lecture-dropdown"
+                  value={selectedLecture}
+                  onChange={this.handleLectureChange}
+                  label="Select Lecture"
+                  disabled={!selectedCourse} // Disable until a course is selected
+                >
+                  {filteredLectures.map((lecture) => {
+                    const adjustedLecture = this.adjustLectureDate(lecture);
+                    return (
+                      <MenuItem key={lecture.id} value={lecture.id}>
+                        {`${Intl.DateTimeFormat("en-US", {
+                          weekday: "short",
+                        }).format(adjustedLecture.startDate)}, ${this.formatTime(
+                          adjustedLecture.startDate
+                        )} - ${this.formatTime(adjustedLecture.endDate)}, ${
+                          lecture.type
+                        }, ${lecture.lecturer}`}
+                      </MenuItem>
+                    );
+                  })}
+                </Select>
+              </FormControl>
               <Box mt={2}>
                 {data.map((appointment) => (
                   <Box
@@ -290,7 +393,13 @@ class SchedulerApp extends React.PureComponent {
                     display="flex"
                     alignItems="center"
                     justifyContent="space-between"
-                    sx={{ backgroundColor: theme.palette.background.paper, color: theme.palette.text.primary, borderRadius: 1, padding: 1, marginY: 1 }}
+                    sx={{
+                      backgroundColor: theme.palette.background.paper,
+                      color: theme.palette.text.primary,
+                      borderRadius: 1,
+                      padding: 1,
+                      marginY: 1,
+                    }}
                   >
                     <div
                       style={{
@@ -298,13 +407,15 @@ class SchedulerApp extends React.PureComponent {
                         backgroundColor: typeToColorMap[appointment.type],
                         borderRadius: 8,
                         padding: 10,
-                        fontSize: '14px', // Increase font size
+                        fontSize: "14px",
                       }}
                     >
                       <div>{appointment.title}</div>
-                      <div>{`${this.formatTime(
-                        new Date(appointment.startDate)
-                      )} - ${this.formatTime(new Date(appointment.endDate))}`}</div>
+                      <div>
+                        {`${this.formatTime(new Date(appointment.startDate))} - ${this.formatTime(
+                          new Date(appointment.endDate)
+                        )}`}
+                      </div>
                       <div>{appointment.type}</div>
                       <div>{appointment.location}</div>
                       <div>{appointment.lecturer}</div>
@@ -332,11 +443,13 @@ class SchedulerApp extends React.PureComponent {
               </Box>
             </Box>
           </Box>
-          <Box mt={2} textAlign="center">
-            <Typography variant="body2">
-              This website is not affiliated with Ort Braude in any way. Made by Niko
-            </Typography>
-          </Box>
+          <Box sx={{ backgroundColor: 'var(--footer-bg-color)' }}>
+      <Box mt={2} textAlign="center" className="footer-container">
+        <Typography variant="body2" className="footer-text">
+          This site is not affiliated with Braude College. Made by Niko. Wanna help me out? <span>Buy me a coffee when you see me</span>.
+        </Typography>
+      </Box>
+    </Box>
         </Box>
       </ThemeProvider>
     );
