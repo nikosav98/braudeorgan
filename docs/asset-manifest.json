@@ -1,15 +1,15 @@
 {
   "files": {
-    "main.css": "/braudeorgan/static/css/main.e6c13ad2.css",
-    "main.js": "/braudeorgan/static/js/main.8ef1ffa5.js",
-    "static/js/453.48d5d14d.chunk.js": "/braudeorgan/static/js/453.48d5d14d.chunk.js",
-    "index.html": "/braudeorgan/index.html",
-    "main.e6c13ad2.css.map": "/braudeorgan/static/css/main.e6c13ad2.css.map",
-    "main.8ef1ffa5.js.map": "/braudeorgan/static/js/main.8ef1ffa5.js.map",
-    "453.48d5d14d.chunk.js.map": "/braudeorgan/static/js/453.48d5d14d.chunk.js.map"
+    "main.css": "/static/css/main.e6c13ad2.css",
+    "main.js": "/static/js/main.4ff4573b.js",
+    "static/js/453.48d5d14d.chunk.js": "/static/js/453.48d5d14d.chunk.js",
+    "index.html": "/index.html",
+    "main.e6c13ad2.css.map": "/static/css/main.e6c13ad2.css.map",
+    "main.4ff4573b.js.map": "/static/js/main.4ff4573b.js.map",
+    "453.48d5d14d.chunk.js.map": "/static/js/453.48d5d14d.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.e6c13ad2.css",
-    "static/js/main.8ef1ffa5.js"
+    "static/js/main.4ff4573b.js"
   ]
 }

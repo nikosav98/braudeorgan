@@ -1,8 +1,8 @@
 {
-  "homepage": "https://nikosav98.github.io/braudeorgan",
+
   "name": "scrapper",
   "version": "0.1.0",
-  "private": true,
+  "private": false,
   "dependencies": {
     "@devexpress/dx-react-core": "^4.0.8",
     "@devexpress/dx-react-scheduler": "^4.0.8",
@@ -24,8 +24,8 @@
   "scripts": {
     "start": "react-scripts start",
     "predeploy": "npm run build",
-    "deploy": "npm run build && git add docs && git commit -m 'Deploy docs to GitHub Pages' && git push origin main",
-    "build": "react-scripts build && mv build docs",
+    "deploy": "gh-pages -d build",
+    "build": "set BUILD_PATH=docs&& react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
