@@ -24,8 +24,8 @@
   "scripts": {
     "start": "react-scripts start",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d build",
-    "build": "set BUILD_PATH=docs&& react-scripts build",
+    "deploy": "npm run build && git add docs && git commit -m 'Deploy docs to GitHub Pages' && git push origin main",
+    "build": "react-scripts build && mv build docs",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
