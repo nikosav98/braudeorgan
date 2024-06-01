@@ -5,9 +5,41 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: #121212;
 }
 
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
+}
+
+.MuiTableCell-root {
+  border-right: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12) !important;
+}
+
+footer {
+  color: white;
+}
+
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+
+.footer-container {
+  margin-top: 2rem;
+  text-align: center;
+  font-family: 'Roboto', sans-serif;
+  background-color: var(--footer-bg-color); /* Ensure this matches the site's background color */
+  padding: 1rem; /* Add some padding for better appearance */
+  border-radius: 8px; /* Optional: add rounded corners */
+  border-top: 1px solid rgba(255, 255, 255, 0.12); /* Add a top border to separate */
+}
+
+.footer-text {
+  color: white;
+  font-weight: 400;
+  font-size: 0.875rem; /* equivalent to variant="body2" */
+}
+
+.footer-text span {
+  font-weight: 700; /* bold */
 }

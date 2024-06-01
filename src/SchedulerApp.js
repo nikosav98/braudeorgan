@@ -55,7 +55,7 @@ const dayMap = {
 };
 
 const DayScaleCell = ({ startDate }) => (
-  <TableCell style={{ borderRight: '1px solid rgba(255, 255, 255, 0.12)' }}>
+  <TableCell style={{ borderRight: '1px solid rgba(255, 255, 255, 0.12)', height: '100%' }}>
     <span>
       {Intl.DateTimeFormat("en-US", { weekday: "short" }).format(startDate)}
     </span>
@@ -69,6 +69,7 @@ class SchedulerApp extends React.PureComponent {
     const savedData = JSON.parse(localStorage.getItem("scheduleData")) || [];
 
     this.state = {
+      selectedProgram: "programming", // State for תוכנית לימודים with default selected value
       selectedCourse: "",
       selectedLecture: "",
       selectedLectureType: "",
@@ -79,6 +80,15 @@ class SchedulerApp extends React.PureComponent {
       searchInput: "", // State to manage the search input
     };
   }
+
+  handleProgramChange = (event) => {
+    this.setState({
+      selectedProgram: event.target.value,
+      selectedCourse: "",
+      selectedLecture: "",
+      selectedLectureType: "",
+    });
+  };
 
   handleCourseChange = (event) => {
     this.setState({
@@ -260,19 +270,19 @@ class SchedulerApp extends React.PureComponent {
 
   saveScheduleToLocalStorage = () => {
     const { data } = this.state;
-    localStorage.setItem("scheduleData", JSON.stringify(data));
+    localStorage.setItem("schedule Data", JSON.stringify(data));
   };
 
   render() {
-    const { data, selectedCourse, selectedLecture, selectedLectureType, selectedDayOfWeek, selectedAppointment, allowConflicts, searchInput } = this.state;
+    const { data, selectedProgram, selectedCourse, selectedLecture, selectedLectureType, selectedDayOfWeek, selectedAppointment, allowConflicts, searchInput } = this.state;
 
     const filteredLectures = initialAppointments.filter(
       (lecture) => lecture.title === selectedCourse
     );
 
-    const filteredCourses = initialAppointments.filter((lecture) =>
-      lecture.title.toLowerCase().includes(searchInput.toLowerCase())
-    );
+    const filteredCourses = Array.from(
+      new Set(initialAppointments.map((lecture) => lecture.title))
+    ).filter((courseName) => courseName.toLowerCase().includes(searchInput.toLowerCase()));
 
     return (
       <ThemeProvider theme={theme}>
@@ -284,7 +294,7 @@ class SchedulerApp extends React.PureComponent {
         >
           <Box className="header-container" display="flex" justifyContent="space-between" alignItems="center" padding={2}>
             <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
-              Braude schedule organizer (updated 31/05)
+              Braude schedule organizer (updated 02/06)
             </Typography>
             <FormControlLabel
               control={
@@ -296,7 +306,7 @@ class SchedulerApp extends React.PureComponent {
                 />
               }
               label="הסרת הגבלה על כמות מאותו שיעור"
-              className="switch-label"
+              style={{ color: 'white' }}
             />
           </Box>
           <Box display="flex" justifyContent="space-between" flexGrow={1}>
@@ -334,58 +344,73 @@ class SchedulerApp extends React.PureComponent {
                 borderRadius: 1,
               }}
             >
-              <TextField
-                fullWidth
-                label="Search Course"
-                variant="outlined"
-                value={searchInput}
-                onChange={this.handleSearchChange}
-                sx={{ marginBottom: 2 }}
-              />
-              <FormControl fullWidth>
-                <InputLabel id="course-dropdown-label">Select Course</InputLabel>
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel id="program-dropdown-label">תוכנית לימודים</InputLabel>
                 <Select
-                  labelId="course-dropdown-label"
-                  id="course-dropdown"
-                  value={selectedCourse}
-                  onChange={this.handleCourseChange}
-                  label="Select Course"
+                  labelId="program-dropdown-label"
+                  id="program-dropdown"
+                  value={selectedProgram}
+                  onChange={this.handleProgramChange}
+                  label="תוכנית לימודים"
                 >
-                  {Array.from(
-                    new Set(filteredCourses.map((lecture) => lecture.title))
-                  ).map((courseName, index) => (
-                    <MenuItem key={index} value={courseName}>
-                      {courseName}
-                    </MenuItem>
-                  ))}
+                  <MenuItem value="programming">הנדסת תוכנה</MenuItem>
                 </Select>
               </FormControl>
-              <FormControl fullWidth sx={{ mt: 2 }}>
-                <InputLabel id="lecture-dropdown-label">Select Lecture</InputLabel>
-                <Select
-                  labelId="lecture-dropdown-label"
-                  id="lecture-dropdown"
-                  value={selectedLecture}
-                  onChange={this.handleLectureChange}
-                  label="Select Lecture"
-                  disabled={!selectedCourse} // Disable until a course is selected
-                >
-                  {filteredLectures.map((lecture) => {
-                    const adjustedLecture = this.adjustLectureDate(lecture);
-                    return (
-                      <MenuItem key={lecture.id} value={lecture.id}>
-                        {`${Intl.DateTimeFormat("en-US", {
-                          weekday: "short",
-                        }).format(adjustedLecture.startDate)}, ${this.formatTime(
-                          adjustedLecture.startDate
-                        )} - ${this.formatTime(adjustedLecture.endDate)}, ${
-                          lecture.type
-                        }, ${lecture.lecturer}`}
-                      </MenuItem>
-                    );
-                  })}
-                </Select>
-              </FormControl>
+              {selectedProgram && (
+                <>
+                  <TextField
+                    fullWidth
+                    label="חיפוש קורס"
+                    variant="outlined"
+                    value={searchInput}
+                    onChange={this.handleSearchChange}
+                    sx={{ marginBottom: 2 }}
+                  />
+                  <FormControl fullWidth>
+                    <InputLabel id="course-dropdown-label">בחר קורס</InputLabel>
+                    <Select
+                      labelId="course-dropdown-label"
+                      id="course-dropdown"
+                      value={selectedCourse}
+                      onChange={this.handleCourseChange}
+                      label="בחר קורס"
+                    >
+                      {filteredCourses.map((courseName, index) => (
+                        <MenuItem key={index} value={courseName}>
+                          {courseName}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </>
+              )}
+              {selectedCourse && (
+                <FormControl fullWidth sx={{ mt: 2 }}>
+                  <InputLabel id="lecture-dropdown-label">בחר הרצאה</InputLabel>
+                  <Select
+                    labelId="lecture-dropdown-label"
+                    id="lecture-dropdown"
+                    value={selectedLecture}
+                    onChange={this.handleLectureChange}
+                    label="בחר הרצאה"
+                  >
+                    {filteredLectures.map((lecture) => {
+                      const adjustedLecture = this.adjustLectureDate(lecture);
+                      return (
+                        <MenuItem key={lecture.id} value={lecture.id}>
+                          {`${Intl.DateTimeFormat("en-US", {
+                            weekday: "short",
+                          }).format(adjustedLecture.startDate)}, ${this.formatTime(
+                            adjustedLecture.startDate
+                          )} - ${this.formatTime(adjustedLecture.endDate)}, ${
+                            lecture.type
+                          }, ${lecture.lecturer}`}
+                        </MenuItem>
+                      );
+                    })}
+                  </Select>
+                </FormControl>
+              )}
               <Box mt={2}>
                 {data.map((appointment) => (
                   <Box
@@ -444,12 +469,12 @@ class SchedulerApp extends React.PureComponent {
             </Box>
           </Box>
           <Box sx={{ backgroundColor: 'var(--footer-bg-color)' }}>
-      <Box mt={2} textAlign="center" className="footer-container">
-        <Typography variant="body2" className="footer-text">
-          This site is not affiliated with Braude College. Made by Niko. Wanna help me out? <span>Buy me a coffee when you see me</span>.
-        </Typography>
-      </Box>
-    </Box>
+            <Box mt={2} textAlign="center" className="footer-container">
+              <Typography variant="body2" className="footer-text">
+                This site is not affiliated with Braude College. Made by Niko. Wanna help me out? <span>Buy me a coffee when you see me</span>.
+              </Typography>
+            </Box>
+          </Box>
         </Box>
       </ThemeProvider>
     );
@@ -457,3 +482,4 @@ class SchedulerApp extends React.PureComponent {
 }
 
 export default SchedulerApp;
+

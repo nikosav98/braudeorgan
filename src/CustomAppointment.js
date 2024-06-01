@@ -39,6 +39,11 @@ const CustomAppointment = ({ data, formatTime, handleRemoveAppointment, selected
         backgroundColor: data.backgroundColor || 'transparent', // Use backgroundColor or fallback to transparent
         height: isShortLesson ? 'auto' : '100%', // Stretch full height for longer lessons
         overflow: isShortLesson ? 'visible' : 'hidden', // Allow text wrap for short lessons
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center',
+        textAlign: 'center',
       }}
       onClick={() => handleAppointmentClick(data)}
     >
