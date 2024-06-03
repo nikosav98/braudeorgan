@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Paper from "@mui/material/Paper";
 import { ViewState } from "@devexpress/dx-react-scheduler";
 import {
@@ -7,6 +7,7 @@ import {
   Appointments,
 } from "@devexpress/dx-react-scheduler-material-ui";
 import TableCell from "@mui/material/TableCell";
+import { useMediaQuery } from '@mui/material';
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import { blue, green, orange, red } from "@mui/material/colors";
 import {
@@ -62,41 +63,35 @@ const DayScaleCell = ({ startDate }) => (
   </TableCell>
 );
 
-class SchedulerApp extends React.PureComponent {
-  constructor(props) {
-    super(props);
+const SchedulerApp = () => {
+  const savedData = JSON.parse(localStorage.getItem("scheduleData")) || [];
+  const [selectedCourse, setSelectedCourse] = useState("");
+  const [selectedLecture, setSelectedLecture] = useState("");
+  const [selectedLectureType, setSelectedLectureType] = useState("");
+  const [selectedDayOfWeek, setSelectedDayOfWeek] = useState("");
+  const [data, setData] = useState(savedData);
+  const [selectedAppointment, setSelectedAppointment] = useState(null);
+  const [allowConflicts, setAllowConflicts] = useState(false);
+  const [searchInput, setSearchInput] = useState("");
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
-    const savedData = JSON.parse(localStorage.getItem("scheduleData")) || [];
+  useEffect(() => {
+    localStorage.setItem("scheduleData", JSON.stringify(data));
+  }, [data]);
 
-    this.state = {
-      selectedCourse: "",
-      selectedLecture: "",
-      selectedLectureType: "",
-      selectedDayOfWeek: "",
-      data: savedData,
-      selectedAppointment: null, // State to track the selected appointment
-      allowConflicts: false, // State to manage the restriction toggle
-      searchInput: "", // State to manage the search input
-    };
-  }
-
-  handleCourseChange = (event) => {
-    this.setState({
-      selectedCourse: event.target.value,
-      selectedLecture: "",
-      selectedLectureType: "",
-    });
+  const handleCourseChange = (event) => {
+    setSelectedCourse(event.target.value);
+    setSelectedLecture("");
+    setSelectedLectureType("");
   };
 
-  handleLectureChange = (event) => {
+  const handleLectureChange = (event) => {
     const lectureId = event.target.value;
-    const lecture = this.getLectureById(lectureId);
-    const linkedLecture = lecture ? this.getLectureById(lecture.linkedId) : null;
+    const lecture = getLectureById(lectureId);
+    const linkedLecture = lecture ? getLectureById(lecture.linkedId) : null;
 
-    const adjustedLecture = lecture ? this.adjustLectureDate(lecture) : null;
-    const adjustedLinkedLecture = linkedLecture ? this.adjustLectureDate(linkedLecture) : null;
-
-    const { data, allowConflicts } = this.state;
+    const adjustedLecture = lecture ? adjustLectureDate(lecture) : null;
+    const adjustedLinkedLecture = linkedLecture ? adjustLectureDate(linkedLecture) : null;
 
     if (!allowConflicts) {
       const courseAppointments = data.filter(app => app.title === adjustedLecture.title);
@@ -112,13 +107,11 @@ class SchedulerApp extends React.PureComponent {
       }
     }
 
-    this.setState({
-      selectedLecture: lectureId,
-      selectedLectureType: adjustedLecture.type,
-      selectedDayOfWeek: Intl.DateTimeFormat("en-US", { weekday: "short" }).format(adjustedLecture.startDate),
-    });
+    setSelectedLecture(lectureId);
+    setSelectedLectureType(adjustedLecture.type);
+    setSelectedDayOfWeek(Intl.DateTimeFormat("en-US", { weekday: "short" }).format(adjustedLecture.startDate));
 
-    if (adjustedLecture && !this.isLectureAdded(lectureId)) {
+    if (adjustedLecture && !isLectureAdded(lectureId)) {
       const newAppointments = [
         {
           id: adjustedLecture.id,
@@ -132,7 +125,7 @@ class SchedulerApp extends React.PureComponent {
         },
       ];
 
-      if (adjustedLinkedLecture && !this.isLectureAdded(linkedLecture.id)) {
+      if (adjustedLinkedLecture && !isLectureAdded(linkedLecture.id)) {
         newAppointments.push({
           id: adjustedLinkedLecture.id,
           title: adjustedLinkedLecture.title,
@@ -145,59 +138,45 @@ class SchedulerApp extends React.PureComponent {
         });
       }
 
-      this.setState(
-        (prevState) => ({
-          data: [...prevState.data, ...newAppointments],
-        }),
-        this.saveScheduleToLocalStorage
-      );
+      setData((prevData) => [...prevData, ...newAppointments]);
     }
   };
 
-  handleRemoveAppointment = (appointmentId) => {
-    const appointment = this.state.data.find((app) => app.id === appointmentId);
+  const handleRemoveAppointment = (appointmentId) => {
+    const appointment = data.find((app) => app.id === appointmentId);
     const linkedAppointmentId = appointment ? appointment.linkedId : null;
 
-    this.setState(
-      (prevState) => ({
-        data: prevState.data.filter(
-          (app) => app.id !== appointmentId && app.id !== linkedAppointmentId
-        ),
-        selectedAppointment: null, // Reset the selected appointment
-      }),
-      this.saveScheduleToLocalStorage
-    );
+    setData((prevData) => prevData.filter(
+      (app) => app.id !== appointmentId && app.id !== linkedAppointmentId
+    ));
+    setSelectedAppointment(null);
   };
 
-  handleAppointmentClick = (appointment) => {
-    this.setState({
-      selectedAppointment: appointment,
-    });
+  const handleAppointmentClick = (appointment) => {
+    setSelectedAppointment(appointment);
   };
 
-  handleCancelDeletion = () => {
-    this.setState({
-      selectedAppointment: null,
-    });
+  const handleCancelDeletion = () => {
+    setSelectedAppointment(null);
   };
 
-  handleToggleChange = (event) => {
-    this.setState({ allowConflicts: event.target.checked });
+  const handleToggleChange = (event) => {
+    setAllowConflicts(event.target.checked);
   };
 
-  handleSearchChange = (event) => {
-    this.setState({ searchInput: event.target.value });
+  const handleSearchChange = (event) => {
+    setSearchInput(event.target.value);
   };
 
-  isLectureAdded = (id) => {
-    return this.state.data.some((appointment) => appointment.id === id);
+  const isLectureAdded = (id) => {
+    return data.some((appointment) => appointment.id === id);
   };
 
-  getLectureById = (id) => {
+  const getLectureById = (id) => {
     return initialAppointments.find((lecture) => lecture.id === id);
   };
 
-  adjustLectureDate = (lecture) => {
+  const adjustLectureDate = (lecture) => {
     const dayOfWeek = dayMap[lecture.day]; // Map lecture day to the appropriate weekday number
   
     // Get the current date and reset it to the start of the week (Sunday)
@@ -229,12 +208,10 @@ class SchedulerApp extends React.PureComponent {
     };
   };
 
-  handleExportToExcel = () => {
-    const { data } = this.state;
-
+  const handleExportToExcel = () => {
     const worksheet = XLSX.utils.json_to_sheet(
       data.map((appointment) => ({
-        TimeSlot: `${this.formatTime(new Date(appointment.startDate))} - ${this.formatTime(new Date(appointment.endDate))}`,
+        TimeSlot: `${formatTime(new Date(appointment.startDate))} - ${formatTime(new Date(appointment.endDate))}`,
         Type: appointment.type,
         Course: appointment.title,
         Location: appointment.location,
@@ -255,191 +232,182 @@ class SchedulerApp extends React.PureComponent {
     );
   };
 
-  formatTime = (date) => {
+  const formatTime = (date) => {
     return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
   };
 
-  saveScheduleToLocalStorage = () => {
-    const { data } = this.state;
-    localStorage.setItem("scheduleData", JSON.stringify(data));
-  };
+  const filteredLectures = initialAppointments.filter(
+    (lecture) => lecture.title === selectedCourse
+  );
 
-  render() {
-    const { data, selectedCourse, selectedLecture, selectedLectureType, selectedDayOfWeek, selectedAppointment, allowConflicts, searchInput } = this.state;
+  const filteredCourses = Array.from(
+    new Set(initialAppointments.map((lecture) => lecture.title))
+  ).filter((courseName) => courseName.toLowerCase().includes(searchInput.toLowerCase()));
 
-    const filteredLectures = initialAppointments.filter(
-      (lecture) => lecture.title === selectedCourse
-    );
-
-    const filteredCourses = Array.from(
-      new Set(initialAppointments
-        .map((lecture) => lecture.title))
-    ).filter((courseName) => courseName.toLowerCase().includes(searchInput.toLowerCase()));
-
-    return (
-      <ThemeProvider theme={theme}>
-        <Box
-          display="flex"
-          flexDirection="column"
-          height="100vh"
-          sx={{ backgroundColor: theme.palette.background.default }}
-        >
-          <Box className="header-container" display="flex" justifyContent="space-between" alignItems="center" padding={2}>
-            <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
-              Braude schedule organizer (updated 03/06)
-            </Typography>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={allowConflicts}
-                  onChange={this.handleToggleChange}
-                  name="allowConflicts"
-                  color="primary"
-                />
-              }
-              label="הסרת הגבלה על כמות מאותו שיעור"
-              style={{ color: 'white' }}
-            />
-          </Box>
-          <Box display="flex" justifyContent="space-between" flexGrow={1}>
-            <Paper style={{ flexGrow: 1, direction: "rtl" }}>
-              <Scheduler data={data}>
-                <ViewState currentDate={new Date()} />
-                <WeekView
-                  startDayHour={8}
-                  endDayHour={19}
-                  dayScaleCellComponent={DayScaleCell}
-                  excludedDays={[6]}
-                />
-                <Appointments
-                  appointmentComponent={(props) => (
-                    <CustomAppointment
-                      data={props.data}
-                      formatTime={this.formatTime}
-                      handleRemoveAppointment={this.handleRemoveAppointment}
-                      selectedAppointment={selectedAppointment}
-                      handleAppointmentClick={this.handleAppointmentClick}
-                      handleCancelDeletion={this.handleCancelDeletion}
-                      style={{
-                      }}
-                    />
-                  )}
-                />
-              </Scheduler>
-            </Paper>
-            <Box
-              sx={{
-                minWidth: 250,
-                marginLeft: 2,
-                marginTop: 2,
-                backgroundColor: theme.palette.background.paper,
-                color: theme.palette.text.primary,
-                padding: 1,
-                borderRadius: 0,
-              }}
-            >
-              <TextField
-                fullWidth
-                label="חיפוש קורס"
-                variant="outlined"
-                value={searchInput}
-                onChange={this.handleSearchChange}
-                sx={{ marginBottom: 2 }}
+  return (
+    <ThemeProvider theme={theme}>
+      <Box
+        display="flex"
+        flexDirection="column"
+        height="100vh"
+        sx={{ backgroundColor: theme.palette.background.default }}
+      >
+        <Box className="header-container" display="flex" justifyContent="space-between" alignItems="center" padding={2}>
+          <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold', fontSize: isMobile ? '1rem' : '1.5rem' }}>
+            Braude schedule organizer (updated 03/06)
+          </Typography>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={allowConflicts}
+                onChange={handleToggleChange}
+                name="allowConflicts"
+                color="primary"
               />
-              <FormControl fullWidth>
-                <InputLabel id="course-dropdown-label">בחר קורס</InputLabel>
+            }
+            label={isMobile ? "Remove restrictions" : "הסרת הגבלה על כמות מאותו שיעור"}
+            style={{ color: 'white' }}
+          />
+        </Box>
+        <Box display="flex" flexDirection={isMobile ? "column" : "row"} justifyContent="space-between" flexGrow={1}>
+          <Paper style={{ flexGrow: 1, direction: "rtl" }}>
+            <Scheduler data={data}>
+              <ViewState currentDate={new Date()} />
+              <WeekView
+                startDayHour={8}
+                endDayHour={19}
+                dayScaleCellComponent={DayScaleCell}
+                excludedDays={[6]}
+              />
+              <Appointments
+                appointmentComponent={(props) => (
+                  <CustomAppointment
+                    data={props.data}
+                    formatTime={formatTime}
+                    handleRemoveAppointment={handleRemoveAppointment}
+                    selectedAppointment={selectedAppointment}
+                    handleAppointmentClick={handleAppointmentClick}
+                    handleCancelDeletion={handleCancelDeletion}
+                    style={{
+                    }}
+                  />
+                )}
+              />
+            </Scheduler>
+          </Paper>
+          <Box
+            sx={{
+              minWidth: isMobile ? '100%' : 250,
+              marginLeft: isMobile ? 0 : 2,
+              marginTop: isMobile ? 2 : 0,
+              backgroundColor: theme.palette.background.paper,
+              color: theme.palette.text.primary,
+              padding: 1,
+              borderRadius: 0,
+            }}
+          >
+            <TextField
+              fullWidth
+              label="חיפוש קורס"
+              variant="outlined"
+              value={searchInput}
+              onChange={handleSearchChange}
+              sx={{ marginBottom: 2 }}
+            />
+            <FormControl fullWidth>
+              <InputLabel id="course-dropdown-label">בחר קורס</InputLabel>
+              <Select
+                labelId="course-dropdown-label"
+                id="course-dropdown"
+                value={selectedCourse}
+                onChange={handleCourseChange}
+                label="בחר קורס"
+              >
+                {filteredCourses.map((courseName, index) => (
+                  <MenuItem key={index} value={courseName}>
+                    {courseName}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            {selectedCourse && (
+              <FormControl fullWidth sx={{ mt: 2 }}>
+                <InputLabel id="lecture-dropdown-label">בחר הרצאה</InputLabel>
                 <Select
-                  labelId="course-dropdown-label"
-                  id="course-dropdown"
-                  value={selectedCourse}
-                  onChange={this.handleCourseChange}
-                  label="בחר קורס"
+                  labelId="lecture-dropdown-label"
+                  id="lecture-dropdown"
+                  value={selectedLecture}
+                  onChange={handleLectureChange}
+                  label="בחר הרצאה"
                 >
-                  {filteredCourses.map((courseName, index) => (
-                    <MenuItem key={index} value={courseName}>
-                      {courseName}
-                    </MenuItem>
-                  ))}
+                  {filteredLectures.map((lecture) => {
+                    const adjustedLecture = adjustLectureDate(lecture);
+                    return (
+                      <MenuItem key={lecture.id} value={lecture.id}>
+                        {`${Intl.DateTimeFormat("en-US", {
+                          weekday: "short",
+                        }).format(adjustedLecture.startDate)}, ${formatTime(
+                          adjustedLecture.startDate
+                        )} - ${formatTime(adjustedLecture.endDate)}, ${
+                          lecture.type
+                        }, ${lecture.lecturer}`}
+                      </MenuItem>
+                    );
+                  })}
                 </Select>
               </FormControl>
-              {selectedCourse && (
-                <FormControl fullWidth sx={{ mt: 2 }}>
-                  <InputLabel id="lecture-dropdown-label">בחר הרצאה</InputLabel>
-                  <Select
-                    labelId="lecture-dropdown-label"
-                    id="lecture-dropdown"
-                    value={selectedLecture}
-                    onChange={this.handleLectureChange}
-                    label="בחר הרצאה"
+            )}
+            <FormControl fullWidth sx={{ mt: 2 }}>
+              <InputLabel id="added-lectures-dropdown-label">הרצאות נבחרות (לחץ למחיקה)</InputLabel>
+              <Select
+                labelId="added-lectures-dropdown-label"
+                id="added-lectures-dropdown"
+                value=""
+                onChange={(e) => handleRemoveAppointment(e.target.value)} // Use the value to remove the appointment
+                label="Added Lectures"
+                renderValue={(selected) => {
+                  if (selected.length === 0) {
+                    return <em>Added Lectures</em>;
+                  }
+                  return selected.join(', ');
+                }}
+              >
+                {data.map((appointment) => (
+                  <MenuItem
+                    key={appointment.id}
+                    value={appointment.id}
+                    style={{
+                      backgroundColor: typeToColorMap[appointment.type],
+                      color: theme.palette.getContrastText(typeToColorMap[appointment.type]),
+                    }}
                   >
-                    {filteredLectures.map((lecture) => {
-                      const adjustedLecture = this.adjustLectureDate(lecture);
-                      return (
-                        <MenuItem key={lecture.id} value={lecture.id}>
-                          {`${Intl.DateTimeFormat("en-US", {
-                            weekday: "short",
-                          }).format(adjustedLecture.startDate)}, ${this.formatTime(
-                            adjustedLecture.startDate
-                          )} - ${this.formatTime(adjustedLecture.endDate)}, ${
-                            lecture.type
-                          }, ${lecture.lecturer}`}
-                        </MenuItem>
-                      );
-                    })}
-                  </Select>
-                </FormControl>
-              )}
-<FormControl fullWidth sx={{ mt: 2 }}>
-  <InputLabel id="added-lectures-dropdown-label">הרצאות נבחרות (לחץ למחיקה)</InputLabel>
-  <Select
-    labelId="added-lectures-dropdown-label"
-    id="added-lectures-dropdown"
-    value=""
-    onChange={(e) => this.handleRemoveAppointment(e.target.value)} // Use the value to remove the appointment
-    label="Added Lectures"
-    renderValue={(selected) => {
-      if (selected.length === 0) {
-        return <em>Added Lectures</em>;
-      }
-      return selected.join(', ');
-    }}
-  >
-    {data.map((appointment) => (
-      <MenuItem
-        key={appointment.id}
-        value={appointment.id}
-        style={{
-          backgroundColor: typeToColorMap[appointment.type],
-          color: theme.palette.getContrastText(typeToColorMap[appointment.type]),
-        }}
-      >
-        {appointment.title} - {appointment.type} ({this.formatTime(new Date(appointment.startDate))} - {this.formatTime(new Date(appointment.endDate))})
-      </MenuItem>
-    ))}
-  </Select>
-</FormControl>
-              <Box mt={2}>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={this.handleExportToExcel}
-                >
-                  Export Schedule to Excel
-                </Button>
-              </Box>
-            </Box>
-          </Box>
-          <Box sx={{ backgroundColor: 'var(--footer-bg-color)' }}>
-            <Box mt={2} textAlign="center" className="footer-container">
-              <Typography variant="body2" className="footer-text">
-                This site is not affiliated with Braude College. Made by Niko. Wanna help me out? <span>Buy me a coffee when you see me</span>. <a href="mailto:nikosav98@gmail.com">Report a problem.</a>
-              </Typography>
+                    {appointment.title} - {appointment.type} ({formatTime(new Date(appointment.startDate))} - {formatTime(new Date(appointment.endDate))})
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <Box mt={2}>
+              <Button
+                variant="contained"
+                color="primary"
+                fullWidth={isMobile}
+                onClick={handleExportToExcel}
+              >
+                Export Schedule to Excel
+              </Button>
             </Box>
           </Box>
         </Box>
-      </ThemeProvider>
-    );
-  }
+        <Box sx={{ backgroundColor: 'var(--footer-bg-color)' }}>
+          <Box mt={2} textAlign="center" className="footer-container">
+            <Typography variant="body2" className="footer-text">
+              This site is not affiliated with Braude College. Made by Niko. Wanna help me out? <span>Buy me a coffee when you see me</span>. <a href="mailto:nikosav98@gmail.com">Report a problem.</a>
+            </Typography>
+          </Box>
+        </Box>
+      </Box>
+    </ThemeProvider>
+  );
 }
 
 export default SchedulerApp;
