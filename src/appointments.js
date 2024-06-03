@@ -3150,17 +3150,6 @@ export const appointments = [
         "lecturer": "פרופ' אלמוג יניב",
         "type": "lecture",
         "day": "א",
-        "linkedId": "307032"
-    },
-    {
-        "title": "חדו\"א 2מ (11006)",
-        "startDate": new Date(2024, 5, 25, 16, 50),
-        "endDate": new Date(2024, 5, 25, 18, 50),
-        "id": "307032",
-        "location": "102 EM",
-        "lecturer": "פרופ' אלמוג יניב",
-        "type": "lecture",
-        "day": "א",
         "linkedId": "926982"
     },
     {
