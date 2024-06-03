@@ -217,14 +217,15 @@ class SchedulerApp extends React.PureComponent {
     const adjustedEndDate = new Date(adjustedStartDate);
     const lectureEndTime = new Date(lecture.endDate);
     adjustedEndDate.setHours(lectureEndTime.getHours(), lectureEndTime.getMinutes(), 0, 0);
-  
-    console.log('Original Start:', lecture.startDate, 'Adjusted Start:', adjustedStartDate);
-    console.log('Original End:', lecture.endDate, 'Adjusted End:', adjustedEndDate);
+
+    // Default the type to "lecture" if it is "N/A"
+    const lectureType = lecture.type === "N/A" ? "lecture" : lecture.type;
   
     return {
       ...lecture,
       startDate: adjustedStartDate,
       endDate: adjustedEndDate,
+      type: lectureType,
     };
   };
 
@@ -285,7 +286,7 @@ class SchedulerApp extends React.PureComponent {
         >
           <Box className="header-container" display="flex" justifyContent="space-between" alignItems="center" padding={2}>
             <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
-              Braude schedule organizer (updated 02/06)
+              Braude schedule organizer (updated 03/06)
             </Typography>
             <FormControlLabel
               control={
@@ -319,6 +320,8 @@ class SchedulerApp extends React.PureComponent {
                       selectedAppointment={selectedAppointment}
                       handleAppointmentClick={this.handleAppointmentClick}
                       handleCancelDeletion={this.handleCancelDeletion}
+                      style={{
+                      }}
                     />
                   )}
                 />
@@ -326,12 +329,12 @@ class SchedulerApp extends React.PureComponent {
             </Paper>
             <Box
               sx={{
-                minWidth: 200,
+                minWidth: 250,
                 marginLeft: 2,
-                marginTop: 4,
+                marginTop: 2,
                 backgroundColor: theme.palette.background.paper,
                 color: theme.palette.text.primary,
-                padding: 2,
+                padding: 1,
                 borderRadius: 0,
               }}
             >
@@ -386,52 +389,35 @@ class SchedulerApp extends React.PureComponent {
                   </Select>
                 </FormControl>
               )}
-              <Box mt={2}>
-                {data.map((appointment) => (
-                  <Box
-                    key={appointment.id}
-                    display="flex"
-                    alignItems="center"
-                    justifyContent="space-between"
-                    sx={{
-                      backgroundColor: theme.palette.background.paper,
-                      color: theme.palette.text.primary,
-                      borderRadius: 0,
-                      padding: 1,
-                      marginY: 1,
-                    }}
-                  >
-                    <div
-                      style={{
-                        textAlign: "center",
-                        backgroundColor: typeToColorMap[appointment.type],
-                        borderRadius: 0,
-                        padding: 10,
-                        fontSize: "14px",
-                      }}
-                    >
-                      <div>{appointment.title}</div>
-                      <div>
-                        {`${this.formatTime(new Date(appointment.startDate))} - ${this.formatTime(
-                          new Date(appointment.endDate)
-                        )}`}
-                      </div>
-                      <div>{appointment.type}</div>
-                      <div>{appointment.location}</div>
-                      <div>{appointment.lecturer}</div>
-                      <Tooltip title="Remove">
-                        <IconButton
-                          onClick={() =>
-                            this.handleRemoveAppointment(appointment.id)
-                          }
-                        >
-                          <Delete />
-                        </IconButton>
-                      </Tooltip>
-                    </div>
-                  </Box>
-                ))}
-              </Box>
+<FormControl fullWidth sx={{ mt: 2 }}>
+  <InputLabel id="added-lectures-dropdown-label">הרצאות נבחרות (לחץ למחיקה)</InputLabel>
+  <Select
+    labelId="added-lectures-dropdown-label"
+    id="added-lectures-dropdown"
+    value=""
+    onChange={(e) => this.handleRemoveAppointment(e.target.value)} // Use the value to remove the appointment
+    label="Added Lectures"
+    renderValue={(selected) => {
+      if (selected.length === 0) {
+        return <em>Added Lectures</em>;
+      }
+      return selected.join(', ');
+    }}
+  >
+    {data.map((appointment) => (
+      <MenuItem
+        key={appointment.id}
+        value={appointment.id}
+        style={{
+          backgroundColor: typeToColorMap[appointment.type],
+          color: theme.palette.getContrastText(typeToColorMap[appointment.type]),
+        }}
+      >
+        {appointment.title} - {appointment.type} ({this.formatTime(new Date(appointment.startDate))} - {this.formatTime(new Date(appointment.endDate))})
+      </MenuItem>
+    ))}
+  </Select>
+</FormControl>
               <Box mt={2}>
                 <Button
                   variant="contained"
