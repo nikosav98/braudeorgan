@@ -237,7 +237,7 @@ const SchedulerApp = () => {
       >
         <Box className="header-container" display="flex" justifyContent="space-between" alignItems="center" padding={2}>
           <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold', fontSize: isMobile ? '1rem' : '1.5rem' }}>
-            Braude schedule organizer (updated 03/06)
+            Braude schedule organizer (updated 05/06)
           </Typography>
           <FormControlLabel
             control={

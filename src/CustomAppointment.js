@@ -34,7 +34,7 @@ const CustomAppointment = ({ data, formatTime, handleRemoveAppointment, selected
       className={`appointment-box ${data.type}`}
       style={{
         position: 'relative',
-        padding: '8px',
+        padding: '2px',
         borderRadius: '0px',
         border: '1px solid',
         backgroundColor: data.backgroundColor || 'transparent', // Use backgroundColor or fallback to transparent
