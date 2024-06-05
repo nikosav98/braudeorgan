@@ -34,8 +34,9 @@ const CustomAppointment = ({ data, formatTime, handleRemoveAppointment, selected
       className={`appointment-box ${data.type}`}
       style={{
         position: 'relative',
-        padding: '10px',
+        padding: '8px',
         borderRadius: '0px',
+        border: '1px solid',
         backgroundColor: data.backgroundColor || 'transparent', // Use backgroundColor or fallback to transparent
         height: isShortLesson ? 'auto' : '100%', // Stretch full height for longer lessons
         overflow: isShortLesson ? 'visible' : 'hidden', // Allow text wrap for short lessons

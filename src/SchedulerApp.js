@@ -18,16 +18,13 @@ import {
   Select,
   Button,
   Typography,
-  IconButton,
-  Tooltip,
-  Switch,
   FormControlLabel,
+  Switch,
   TextField,
 } from "@mui/material";
-import { Delete } from "@mui/icons-material";
-import { saveAs } from "file-saver";
-import * as XLSX from "xlsx";
+import html2canvas from 'html2canvas';
 import CustomAppointment from "./CustomAppointment"; // Import the custom appointment component
+import { saveAs } from 'file-saver';
 
 import { appointments as initialAppointments } from "./appointments";
 
@@ -56,7 +53,7 @@ const dayMap = {
 };
 
 const DayScaleCell = ({ startDate }) => (
-  <TableCell style={{width: '100px', borderRight: '0px solid rgba(255, 255, 255, 0.12)', height: '100%' }}>
+  <TableCell style={{ width: '100px', borderRight: '0px solid rgba(255, 255, 255, 0.12)', height: '100%' }}>
     <span>
       {Intl.DateTimeFormat("en-US", { weekday: "short" }).format(startDate)}
     </span>
@@ -208,28 +205,14 @@ const SchedulerApp = () => {
     };
   };
 
-  const handleExportToExcel = () => {
-    const worksheet = XLSX.utils.json_to_sheet(
-      data.map((appointment) => ({
-        TimeSlot: `${formatTime(new Date(appointment.startDate))} - ${formatTime(new Date(appointment.endDate))}`,
-        Type: appointment.type,
-        Course: appointment.title,
-        Location: appointment.location,
-        Lecturer: appointment.lecturer,
-      }))
-    );
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Scheduled Courses");
+  const handleExportToImage = () => {
+    const input = document.getElementById('scheduler-container'); // The container you want to capture
 
-    const excelBuffer = XLSX.write(workbook, {
-      bookType: "xlsx",
-      type: "array",
+    html2canvas(input, { scale: 2 }).then((canvas) => {
+      canvas.toBlob((blob) => {
+        saveAs(blob, 'scheduled_courses.png');
+      });
     });
-    const fileName = "scheduled_courses.xlsx";
-    saveAs(
-      new Blob([excelBuffer], { type: "application/octet-stream" }),
-      fileName
-    );
   };
 
   const formatTime = (date) => {
@@ -270,13 +253,16 @@ const SchedulerApp = () => {
           />
         </Box>
         <Box display="flex" flexDirection={isMobile ? "column" : "row"} justifyContent="space-between" flexGrow={1}>
-          <Paper style={{ flexGrow: 1, direction: "rtl" }}>
+          <Paper id="scheduler-container" style={{ flexGrow: 1, direction: "rtl" }}>
             <Scheduler data={data}>
               <ViewState currentDate={new Date()} />
               <WeekView
                 startDayHour={8}
-                endDayHour={19}
+                endDayHour={19} // Ensure the endDayHour includes lectures after 4:30 PM
                 dayScaleCellComponent={DayScaleCell}
+                timeTableCellComponent={(props) => (
+                  <WeekView.TimeTableCell {...props} style={{ height: '50px' }} /> // Adjust the cell height as needed
+                )}
                 excludedDays={[6]}
               />
               <Appointments
@@ -391,9 +377,9 @@ const SchedulerApp = () => {
                 variant="contained"
                 color="primary"
                 fullWidth={isMobile}
-                onClick={handleExportToExcel}
+                onClick={handleExportToImage}
               >
-                Export Schedule to Excel
+                Export Schedule to Image
               </Button>
             </Box>
           </Box>
