@@ -56,6 +56,7 @@ const SchedulerApp = () => {
   const [selectedLectureType, setSelectedLectureType] = useState("");
   const [selectedDayOfWeek, setSelectedDayOfWeek] = useState("");
   const [data, setData] = useState(savedData);
+  const [addedCourses, setAddedCourses] = useState([]); // Track added courses
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [allowConflicts, setAllowConflicts] = useState(false);
   const [searchInput, setSearchInput] = useState("");
@@ -131,6 +132,9 @@ const SchedulerApp = () => {
       }
 
       setData((prevData) => [...prevData, ...newAppointments]);
+
+      // Add the course to the addedCourses state
+      setAddedCourses((prevAddedCourses) => [...prevAddedCourses, adjustedLecture.title]);
     }
   };
 
@@ -140,6 +144,9 @@ const SchedulerApp = () => {
 
     setData((prevData) => prevData.filter((app) => app.id !== appointmentId && app.id !== linkedAppointmentId));
     setSelectedAppointment(null);
+
+    // Remove the course from the addedCourses state
+    setAddedCourses((prevAddedCourses) => prevAddedCourses.filter((course) => course !== appointment.title));
   };
 
   const handleAppointmentClick = (appointment) => {
