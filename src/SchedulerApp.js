@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import SplashScreen from './SplashScreen';
 import Paper from "@mui/material/Paper";
 import { ViewState } from "@devexpress/dx-react-scheduler";
 import {
@@ -67,6 +68,7 @@ const SchedulerApp = () => {
   useEffect(() => {
     localStorage.setItem("scheduleData", JSON.stringify(data));
   }, [data]);
+
 
   const handleCourseChange = (courseName) => {
     setSelectedCourse(courseName);
@@ -233,9 +235,10 @@ const SchedulerApp = () => {
 
   return (
     <ThemeProvider theme={theme}>
+      <SplashScreen /> // REMOVE TO DISABLE THE SPLASH SCREEN SPLASHSCREEN splashscreen
       <Box display="flex" flexDirection="column" height="100vh" sx={{ backgroundColor: theme.palette.background.default }}>
         <Box className="header-container" display="flex" justifyContent="space-between" alignItems="center" padding={2}>
-          <Typography variant="h6" sx={{ color: "white", fontWeight: "bold", fontSize: isMobile ? "1rem" : "1.5rem" }}>
+          <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold', fontSize: isMobile ? '1rem' : '1.5rem' }}>
             Braude schedule organizer (updated 05/06)
           </Typography>
           <FormControlLabel
@@ -247,12 +250,12 @@ const SchedulerApp = () => {
                 color="primary"
               />
             }
-            label={isMobile ? "Remove restrictions" : "הסרת הגבלה על כמות מופעים של הרצאה"}
-            style={{ color: "white" }}
+            label={isMobile ? 'Remove restrictions' : 'הסרת הגבלה על כמות מופעים של הרצאה'}
+            style={{ color: 'white' }}
           />
         </Box>
-        <Box display="flex" flexDirection={isMobile ? "column" : "row"} justifyContent="space-between" flexGrow={1}>
-          <Paper id="scheduler-container" style={{ flexGrow: 1, direction: "rtl" }}>
+        <Box display="flex" flexDirection={isMobile ? 'column' : 'row'} justifyContent="space-between" flexGrow={1}>
+          <Paper id="scheduler-container" style={{ flexGrow: 1, direction: 'rtl' }}>
             <Scheduler data={data}>
               <ViewState currentDate={new Date()} />
               <WeekView
@@ -260,7 +263,7 @@ const SchedulerApp = () => {
                 endDayHour={19} // Ensure the endDayHour includes lectures after 4:30 PM
                 dayScaleCellComponent={DayScaleCell}
                 timeTableCellComponent={(props) => (
-                  <WeekView.TimeTableCell {...props} style={{ height: "50px" }} /> // Adjust the cell height as needed
+                  <WeekView.TimeTableCell {...props} style={{ height: '50px' }} /> // Adjust the cell height as needed
                 )}
                 excludedDays={[6]}
               />
@@ -281,7 +284,7 @@ const SchedulerApp = () => {
           </Paper>
           <Box
             sx={{
-              minWidth: isMobile ? "100%" : 250,
+              minWidth: isMobile ? '100%' : 250,
               marginLeft: isMobile ? 0 : 2,
               marginTop: isMobile ? 2 : 0,
               backgroundColor: theme.palette.background.paper,
@@ -299,7 +302,7 @@ const SchedulerApp = () => {
                 onChange={handleSearchChange}
                 sx={{ marginBottom: 2 }}
                 inputProps={{
-                  autoComplete: "off",
+                  autoComplete: 'off',
                   spellCheck: false,
                 }}
               />
@@ -331,8 +334,8 @@ const SchedulerApp = () => {
                     const adjustedLecture = adjustLectureDate(lecture);
                     return (
                       <MenuItem key={lecture.id} value={lecture.id}>
-                        {`${Intl.DateTimeFormat("en-US", {
-                          weekday: "short",
+                        {`${Intl.DateTimeFormat('en-US', {
+                          weekday: 'short',
                         }).format(adjustedLecture.startDate)}, ${formatTime(adjustedLecture.startDate)} - ${formatTime(adjustedLecture.endDate)}, ${
                           lecture.type
                         }, ${lecture.lecturer}`}
@@ -354,7 +357,7 @@ const SchedulerApp = () => {
                   if (selected.length === 0) {
                     return <em>Added Lectures</em>;
                   }
-                  return selected.join(", ");
+                  return selected.join(', ');
                 }}
               >
                 {data.map((appointment) => (
@@ -383,7 +386,7 @@ const SchedulerApp = () => {
             </Box>
           </Box>
         </Box>
-        <Box sx={{ backgroundColor: "var(--footer-bg-color)" }}>
+        <Box sx={{ backgroundColor: 'var(--footer-bg-color)' }}>
           <Box mt={2} textAlign="center" className="footer-container">
             <Typography variant="body2" className="footer-text">
               This site is not affiliated with Braude College. Made by Niko. Wanna help me out? <span>Buy me a coffee when you see me</span>. <a href="mailto:nikosav98@gmail.com">Report a problem.</a>
