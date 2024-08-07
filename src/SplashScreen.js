@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Box, Typography } from '@mui/material';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
+import './App.css'; // Make sure to import your CSS file where .no-scroll is defined
 
 const splashTheme = createTheme({
   palette: {
@@ -9,6 +10,16 @@ const splashTheme = createTheme({
 });
 
 const SplashScreen = () => {
+  useEffect(() => {
+    // Add no-scroll class to body
+    document.body.classList.add('no-scroll');
+
+    // Remove no-scroll class when component is unmounted
+    return () => {
+      document.body.classList.remove('no-scroll');
+    };
+  }, []);
+
   return (
     <ThemeProvider theme={splashTheme}>
       <Box

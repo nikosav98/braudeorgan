@@ -37,3 +37,7 @@
   }
 }
 
+/* Splash screen no scroll */
+.no-scroll {
+  overflow: hidden;
+}
