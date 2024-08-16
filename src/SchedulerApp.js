@@ -59,6 +59,15 @@ const SchedulerApp = () => {
   const [isCustomAppointmentFormOpen, setIsCustomAppointmentFormOpen] = useState(false);
   const [hoveredAppointments, setHoveredAppointments] = useState([]);
 
+  useEffect(() => {
+    localStorage.setItem("scheduleData", JSON.stringify(data));
+  }, [data]);
+
+  const handleDeleteAllAppointments = () => {
+    setData([]);
+    localStorage.removeItem("scheduleData"); // Clear the local storage as well if needed
+  };
+
   const handleHoverLecture = (lectures) => {
     setHoveredAppointments(lectures || []);
   };
@@ -274,12 +283,12 @@ const SchedulerApp = () => {
   };
 
   return (
-    <ThemeProvider theme={theme}>
-      <Box display="flex" flexDirection="column" height="100vh" sx={{ backgroundColor: theme.palette.background.default }}>
+    <ThemeProvider theme={theme}>// TEST
+      <Box  display="flex" flexDirection="column" height="100%" sx={{ backgroundColor: theme.palette.background.default }}>
         <Header allowConflicts={allowConflicts} handleToggleChange={handleToggleChange} />
         <Box display="flex" flexDirection="row" justifyContent="space-between" flexGrow={1}>
           <Paper id="scheduler-container" style={{ flexGrow: 1, direction: 'rtl' }}>
-            <Scheduler data={[...data, ...hoveredAppointments]}>
+            <Scheduler data={[...data, ...hoveredAppointments]} >
               <ViewState currentDate={new Date()} />
               <WeekView
                 startDayHour={8}
@@ -331,17 +340,17 @@ const SchedulerApp = () => {
                 filteredCourses={filteredCourses}
                 handleCourseChange={handleCourseChange}
               />
-              <LectureSelector
-                selectedCourse={selectedCourse}
-                selectedLecture={selectedLecture}
-                handleLectureChange={handleLectureChange}
-                filteredLectures={filteredLectures}
-                adjustLectureDate={adjustLectureDate}
-                formatTime={formatTime}
-                getLectureById={getLectureById}
-                onHoverLecture={handleHoverLecture} // Pass the hover handler
-                isLectureAdded={isLectureAdded} // Pass the function to check if lecture is added
-              />
+            <LectureSelector
+              selectedCourse={selectedCourse}
+              selectedLecture={selectedLecture}
+              handleLectureChange={handleLectureChange}
+              filteredLectures={filteredLectures}
+              adjustLectureDate={adjustLectureDate}
+              formatTime={formatTime}
+              getLectureById={getLectureById}
+              onHoverLecture={handleHoverLecture} // Pass the hover handler
+              isLectureAdded={isLectureAdded} // Pass the function to check if lecture is added
+            />
               <AddedLectures
                 data={data}
                 handleRemoveAppointment={handleRemoveAppointment}
@@ -363,7 +372,7 @@ const SchedulerApp = () => {
             </Box>
           </Box>
         </Box>
-        <Footer />
+        <Footer onDeleteAll={handleDeleteAllAppointments}/>
       </Box>
       <CustomAppointmentForm open={isCustomAppointmentFormOpen} onClose={handleCloseCustomAppointmentForm} onSave={handleSaveCustomAppointment} />
     </ThemeProvider>

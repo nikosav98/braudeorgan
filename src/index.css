@@ -40,3 +40,34 @@ footer {
 .footer-text span {
   font-weight: 900; /* bold */
 }
+
+
+/* Ensure the body and html take up full height */
+html, body {
+  height: 100%;
+  margin: 0;
+}
+
+/* The container that holds the table should use full height */
+#scheduler-container {
+  flex-grow: 1; /* Allow the table to grow and take up available space */
+  display: flex;
+  flex-direction: column;
+}
+
+/* The table itself should stretch to fill the container */
+.table-class {
+  flex-grow: 1;
+  height: 100%;
+}
+
+/* If using Flexbox in the main container */
+.main-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh; /* Full viewport height */
+}
+
+.footer-container {
+  flex-shrink: 0; /* Ensure footer doesn't collapse */
+}

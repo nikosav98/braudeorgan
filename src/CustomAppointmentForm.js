@@ -12,6 +12,7 @@ import {
   InputLabel,
   MenuItem,
   Select,
+  Typography,
 } from '@mui/material';
 import { SketchPicker } from 'react-color';
 
@@ -32,8 +33,30 @@ const CustomAppointmentForm = ({ open, onClose, onSave }) => {
   const [location, setLocation] = useState('');
   const [customText, setCustomText] = useState('');
   const [color, setColor] = useState('#FF5733');
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const validateTimes = () => {
+    const start = new Date(`1970-01-01T${startTime}:00`);
+    const end = new Date(`1970-01-01T${endTime}:00`);
+    const duration = (end - start) / (1000 * 60); // duration in minutes
+
+    if (duration < 10) {
+      setErrorMessage('Appointment duration must be at least 10 minutes.');
+      return false;
+    }
+    if (startTime < '08:00' || endTime > '20:00') {
+      setErrorMessage('Appointments must be between 08:00 and 20:00.');
+      return false;
+    }
+    setErrorMessage('');
+    return true;
+  };
 
   const handleSave = () => {
+    if (!validateTimes()) {
+      return;
+    }
+
     const currentDate = new Date();
     const currentDay = currentDate.getDay();
     const weekStartDate = new Date(currentDate.setDate(currentDate.getDate() - currentDay));
@@ -104,7 +127,7 @@ const CustomAppointmentForm = ({ open, onClose, onSave }) => {
               value={startTime}
               onChange={(e) => setStartTime(e.target.value)}
               inputProps={{
-                min: "08:30",
+                min: "08:00",
                 max: "20:00",
               }}
               required
@@ -119,11 +142,18 @@ const CustomAppointmentForm = ({ open, onClose, onSave }) => {
               value={endTime}
               onChange={(e) => setEndTime(e.target.value)}
               inputProps={{
-                min: "08:30",
+                min: "08:00",
                 max: "20:00",
               }}
               required
             />
+          </Grid>
+          <Grid item xs={12}>
+            {errorMessage && (
+              <Typography color="error" variant="body2" sx={{ mt: 1 }}>
+                {errorMessage}
+              </Typography>
+            )}
           </Grid>
           <Grid item xs={12}>
             <TextField
