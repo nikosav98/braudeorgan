@@ -1,29 +1,32 @@
 import React, { useState, useEffect } from "react";
-import SplashScreen from './SplashScreen';
+import Header from './Header';
+import SearchCourse from './SearchCourse';
+import LectureSelector from './LectureSelector';
+import AddedLectures from './AddedLectures';
+import Footer from './Footer';
 import Paper from "@mui/material/Paper";
 import { ViewState } from "@devexpress/dx-react-scheduler";
-import {
-  Scheduler,
-  WeekView,
-  Appointments,
-} from "@devexpress/dx-react-scheduler-material-ui";
-import TableCell from "@mui/material/TableCell";
-import { useMediaQuery } from "@mui/material";
+import { Scheduler, WeekView, Appointments } from "@devexpress/dx-react-scheduler-material-ui";
+import { Box, Button } from "@mui/material";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import { blue, green, orange, red } from "@mui/material/colors";
-import { Popper, ClickAwayListener, MenuList, MenuItem, TextField, FormControl, Box, Typography, FormControlLabel, Switch, Button, InputLabel, Select } from "@mui/material";
 import html2canvas from "html2canvas";
-import CustomAppointment from "./CustomAppointment"; // Import the custom appointment component
+import CustomAppointment from "./CustomAppointment";
+import CustomAppointmentForm from './CustomAppointmentForm';
 import { saveAs } from "file-saver";
+import * as XLSX from 'xlsx'; // Import the XLSX library
 import { appointments as initialAppointments } from "./appointments";
-
+import DayScaleCell from './DayScaleCell';
 
 const theme = createTheme({
+  typography: {
+    fontFamily: 'Montserrat, sans-serif',
+  },
   palette: {
     mode: "dark",
     primary: blue,
   },
-  direction: "rtl",
+  direction: 'rtl',
 });
 
 const typeToColorMap = {
@@ -42,14 +45,6 @@ const dayMap = {
   "ש": 6,
 };
 
-const DayScaleCell = ({ startDate }) => (
-  <TableCell style={{ width: "100px", borderRight: "0px solid rgba(255, 255, 255, 0.12)", height: "100%" }}>
-    <span>
-      {Intl.DateTimeFormat("en-US", { weekday: "short" }).format(startDate)}
-    </span>
-  </TableCell>
-);
-
 const SchedulerApp = () => {
   const savedData = JSON.parse(localStorage.getItem("scheduleData")) || [];
   const [selectedCourse, setSelectedCourse] = useState("");
@@ -57,98 +52,95 @@ const SchedulerApp = () => {
   const [selectedLectureType, setSelectedLectureType] = useState("");
   const [selectedDayOfWeek, setSelectedDayOfWeek] = useState("");
   const [data, setData] = useState(savedData);
-  const [addedCourses, setAddedCourses] = useState([]); // Track added courses
+  const [addedCourses, setAddedCourses] = useState([]);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [allowConflicts, setAllowConflicts] = useState(false);
   const [searchInput, setSearchInput] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const [isCustomAppointmentFormOpen, setIsCustomAppointmentFormOpen] = useState(false);
+
+  const handleOpenCustomAppointmentForm = () => {
+    setIsCustomAppointmentFormOpen(true);
+  };
+
+  const handleCloseCustomAppointmentForm = () => {
+    setIsCustomAppointmentFormOpen(false);
+  };
+
+  const handleSaveCustomAppointment = (newAppointment) => {
+    setData((prevData) => [...prevData, newAppointment]);
+  };
 
   useEffect(() => {
     localStorage.setItem("scheduleData", JSON.stringify(data));
   }, [data]);
 
-
   const handleCourseChange = (courseName) => {
     setSelectedCourse(courseName);
     setSelectedLecture("");
     setSelectedLectureType("");
-    setSearchInput(courseName); // Display the full name in the search box
+    setSearchInput(courseName); 
     setIsDropdownOpen(false);
   };
 
-  const handleLectureChange = (event) => {
-    const lectureId = event.target.value;
-    const lecture = getLectureById(lectureId);
-    const linkedLecture = lecture ? getLectureById(lecture.linkedId) : null;
+  const handleColorChange = (appointmentId, color) => {
+    setData((prevData) =>
+      prevData.map((appointment) =>
+        appointment.id === appointmentId ? { ...appointment, backgroundColor: color } : appointment
+      )
+    );
+  };
 
-    const adjustedLecture = lecture ? adjustLectureDate(lecture) : null;
-    const adjustedLinkedLecture = linkedLecture ? adjustLectureDate(linkedLecture) : null;
-
+  const handleLectureChange = (value) => {
+    const lectureIds = value.split(','); // Split the value to get individual IDs
+  
+    const lectures = lectureIds.map((id) => getLectureById(id));
+    const adjustedLectures = lectures.map(adjustLectureDate);
+  
     if (!allowConflicts) {
-      const courseAppointments = data.filter((app) => app.title === adjustedLecture.title);
-      const existingLecture = courseAppointments.find((app) => app.type === "lecture");
-      const existingExercise = courseAppointments.find((app) => app.type === "exercise");
-      const existingLab = courseAppointments.find((app) => app.type === "lab");
-
-      if (
-        (adjustedLecture.type === "lecture" && existingLecture) ||
-        (adjustedLecture.type === "exercise" && existingExercise) ||
-        (adjustedLecture.type === "lab" && existingLab)
-      ) {
-        alert(` ${adjustedLecture.title} ניתן לבחור רק מופע אחד של הרצאה מאותו סוג (ניתן לבטל בעזרת הכפתור למעלה).`);
+      const hasConflict = adjustedLectures.some((adjustedLecture) => {
+        const courseAppointments = data.filter((app) => app.title === adjustedLecture.title);
+        return courseAppointments.some((app) => app.type === adjustedLecture.type);
+      });
+  
+      if (hasConflict) {
+        alert(`לא ניתן לבחור יותר מאחד מאותו סוג של שיעור.`);
         return;
       }
     }
-
-    setSelectedLecture(lectureId);
-    setSelectedLectureType(adjustedLecture.type);
-    setSelectedDayOfWeek(Intl.DateTimeFormat("en-US", { weekday: "short" }).format(adjustedLecture.startDate));
-
-    if (adjustedLecture && !isLectureAdded(lectureId)) {
-      const newAppointments = [
-        {
-          id: adjustedLecture.id,
-          title: adjustedLecture.title,
-          startDate: adjustedLecture.startDate,
-          endDate: adjustedLecture.endDate,
-          type: adjustedLecture.type,
-          location: adjustedLecture.location,
-          lecturer: adjustedLecture.lecturer,
-          backgroundColor: typeToColorMap[adjustedLecture.type], // Set the background color based on type
-        },
-      ];
-
-      if (adjustedLinkedLecture && !isLectureAdded(linkedLecture.id)) {
-        newAppointments.push({
-          id: adjustedLinkedLecture.id,
-          title: adjustedLinkedLecture.title,
-          startDate: adjustedLinkedLecture.startDate,
-          endDate: adjustedLinkedLecture.endDate,
-          type: adjustedLinkedLecture.type,
-          location: adjustedLinkedLecture.location,
-          lecturer: adjustedLinkedLecture.lecturer,
-          backgroundColor: typeToColorMap[adjustedLinkedLecture.type], // Set the background color based on type
-        });
-      }
-
-      setData((prevData) => [...prevData, ...newAppointments]);
-
-      // Add the course to the addedCourses state
-      setAddedCourses((prevAddedCourses) => [...prevAddedCourses, adjustedLecture.title]);
-    }
+  
+    const newAppointments = adjustedLectures.map((adjustedLecture) => ({
+      id: adjustedLecture.id,
+      title: adjustedLecture.title,
+      startDate: adjustedLecture.startDate,
+      endDate: adjustedLecture.endDate,
+      type: adjustedLecture.type,
+      location: adjustedLecture.location,
+      lecturer: adjustedLecture.lecturer,
+      backgroundColor: typeToColorMap[adjustedLecture.type],
+    }));
+  
+    setData((prevData) => [...prevData, ...newAppointments]);
+  
+    setAddedCourses((prevAddedCourses) => [
+      ...prevAddedCourses,
+      ...newAppointments.map((appointment) => appointment.title),
+    ]);
   };
 
   const handleRemoveAppointment = (appointmentId) => {
     const appointment = data.find((app) => app.id === appointmentId);
     const linkedAppointmentId = appointment ? appointment.linkedId : null;
 
-    setData((prevData) => prevData.filter((app) => app.id !== appointmentId && app.id !== linkedAppointmentId));
+    setData((prevData) => 
+      prevData.filter((app) => app.id !== appointmentId && app.id !== linkedAppointmentId)
+    );
     setSelectedAppointment(null);
 
-    // Remove the course from the addedCourses state
-    setAddedCourses((prevAddedCourses) => prevAddedCourses.filter((course) => course !== appointment.title));
+    setAddedCourses((prevAddedCourses) => 
+      prevAddedCourses.filter((course) => course !== appointment.title)
+    );
   };
 
   const handleAppointmentClick = (appointment) => {
@@ -178,39 +170,28 @@ const SchedulerApp = () => {
   };
 
   const adjustLectureDate = (lecture) => {
-    const dayOfWeek = dayMap[lecture.day]; // Map lecture day to the appropriate weekday number
-
-    // Get the current date and reset it to the start of the week (Sunday)
+    const dayOfWeek = dayMap[lecture.day];
     const currentDate = new Date();
     const currentDay = currentDate.getDay();
     const weekStartDate = new Date(currentDate.setDate(currentDate.getDate() - currentDay));
-
-    // Set the start date to the correct day of the week
     const adjustedStartDate = new Date(weekStartDate);
     adjustedStartDate.setDate(weekStartDate.getDate() + dayOfWeek);
-
-    // Extract and set the time from the lecture's start date
     const lectureStartTime = new Date(lecture.startDate);
     adjustedStartDate.setHours(lectureStartTime.getHours(), lectureStartTime.getMinutes(), 0, 0);
-
-    // Adjust the end date similarly
     const adjustedEndDate = new Date(adjustedStartDate);
     const lectureEndTime = new Date(lecture.endDate);
     adjustedEndDate.setHours(lectureEndTime.getHours(), lectureEndTime.getMinutes(), 0, 0);
-
-    // Default the type to "lecture" if it is "N/A"
-    const lectureType = lecture.type === "N/A" ? "lecture" : lecture.type;
 
     return {
       ...lecture,
       startDate: adjustedStartDate,
       endDate: adjustedEndDate,
-      type: lectureType,
+      type: lecture.type,
     };
   };
 
   const handleExportToImage = () => {
-    const input = document.getElementById("scheduler-container"); // The container you want to capture
+    const input = document.getElementById("scheduler-container"); 
 
     html2canvas(input, { scale: 2 }).then((canvas) => {
       canvas.toBlob((blob) => {
@@ -218,6 +199,66 @@ const SchedulerApp = () => {
       });
     });
   };
+
+  const handleExportToExcel = () => {
+    const dayOrder = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+    
+    const formattedData = data.map((appointment) => {
+      const startDate = new Date(appointment.startDate);
+      const endDate = new Date(appointment.endDate);
+  
+      if (isNaN(startDate) || isNaN(endDate)) {
+        console.error("Invalid date detected:", appointment);
+        return null;
+      }
+  
+      return {
+        "Course Title": appointment.title,
+        "Day of Week": Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(startDate),
+        "Start Time": startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+        "End Time": endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+        "Location": appointment.location,
+        "Lecturer": appointment.lecturer,
+        "Type": appointment.type,
+        "Notes": appointment.customText || "",
+        dayOfWeekIndex: startDate.getDay(), // Add an index for day of the week sorting
+        startTime: startDate.getTime(), // Add a numeric time value for time sorting
+      };
+    }).filter(appointment => appointment !== null);
+  
+    if (formattedData.length === 0) {
+      console.error("No valid data to export.");
+      return;
+    }
+  
+    // Sort the data by day of the week and then by start time
+    const sortedData = formattedData.sort((a, b) => {
+      if (a.dayOfWeekIndex !== b.dayOfWeekIndex) {
+        return a.dayOfWeekIndex - b.dayOfWeekIndex; // Sort by day of the week
+      }
+      return a.startTime - b.startTime; // Then sort by start time
+    });
+  
+    // Remove the helper properties after sorting
+    sortedData.forEach(item => {
+      delete item.dayOfWeekIndex;
+      delete item.startTime;
+    });
+  
+    const worksheet = XLSX.utils.json_to_sheet(sortedData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Schedule");
+  
+    const worksheetStyle = {
+      "!cols": [{ wch: 30 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 30 }],
+      "!rows": [{ hpt: 20 }],
+    };
+    worksheet["!cols"] = worksheetStyle["!cols"];
+    worksheet["!rows"] = worksheetStyle["!rows"];
+  
+    XLSX.writeFile(workbook, "schedule.xlsx");
+  };
+  
 
   const formatTime = (date) => {
     return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
@@ -233,37 +274,24 @@ const SchedulerApp = () => {
     setIsDropdownOpen(false);
   };
 
-  return (
+ return (
     <ThemeProvider theme={theme}>
-      <SplashScreen /> // REMOVE TO DISABLE THE SPLASH SCREEN SPLASHSCREEN splashscreen
       <Box display="flex" flexDirection="column" height="100vh" sx={{ backgroundColor: theme.palette.background.default }}>
-        <Box className="header-container" display="flex" justifyContent="space-between" alignItems="center" padding={2}>
-          <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold', fontSize: isMobile ? '1rem' : '1.5rem' }}>
-            Braude schedule organizer (updated 05/06)
-          </Typography>
-          <FormControlLabel
-            control={
-              <Switch
-                checked={allowConflicts}
-                onChange={handleToggleChange}
-                name="allowConflicts"
-                color="primary"
-              />
-            }
-            label={isMobile ? 'Remove restrictions' : 'הסרת הגבלה על כמות מופעים של הרצאה'}
-            style={{ color: 'white' }}
-          />
-        </Box>
-        <Box display="flex" flexDirection={isMobile ? 'column' : 'row'} justifyContent="space-between" flexGrow={1}>
+        <Header 
+          allowConflicts={allowConflicts} 
+          handleToggleChange={handleToggleChange} 
+        />
+        <Box display="flex" flexDirection="row" justifyContent="space-between" flexGrow={1}>
           <Paper id="scheduler-container" style={{ flexGrow: 1, direction: 'rtl' }}>
             <Scheduler data={data}>
               <ViewState currentDate={new Date()} />
               <WeekView
                 startDayHour={8}
-                endDayHour={19} // Ensure the endDayHour includes lectures after 4:30 PM
+                endDayHour={20}
+                cellDuration={60}
                 dayScaleCellComponent={DayScaleCell}
                 timeTableCellComponent={(props) => (
-                  <WeekView.TimeTableCell {...props} style={{ height: '50px' }} /> // Adjust the cell height as needed
+                  <WeekView.TimeTableCell {...props} style={{ height: '50px' }} />
                 )}
                 excludedDays={[6]}
               />
@@ -276,7 +304,7 @@ const SchedulerApp = () => {
                     selectedAppointment={selectedAppointment}
                     handleAppointmentClick={handleAppointmentClick}
                     handleCancelDeletion={handleCancelDeletion}
-                    style={{}}
+                    handleColorChange={handleColorChange}
                   />
                 )}
               />
@@ -284,116 +312,81 @@ const SchedulerApp = () => {
           </Paper>
           <Box
             sx={{
-              minWidth: isMobile ? '100%' : 250,
-              marginLeft: isMobile ? 0 : 2,
-              marginTop: isMobile ? 2 : 0,
+              minWidth: 250,
+              marginLeft: 2,
+              marginTop: 2,
               backgroundColor: theme.palette.background.paper,
               color: theme.palette.text.primary,
-              padding: 1,
               borderRadius: 0,
+              paddingRight: '1px',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              height: '100%',
             }}
           >
-            <FormControl fullWidth>
-              <TextField
-                fullWidth
-                label="חיפוש קורס"
-                variant="outlined"
-                value={searchInput}
-                onChange={handleSearchChange}
-                sx={{ marginBottom: 2 }}
-                inputProps={{
-                  autoComplete: 'off',
-                  spellCheck: false,
-                }}
+            <Box sx={{ flexGrow: 1 }}>
+              <SearchCourse
+                searchInput={searchInput}
+                handleSearchChange={handleSearchChange}
+                isDropdownOpen={isDropdownOpen}
+                anchorEl={anchorEl}
+                handleClickAway={handleClickAway}
+                filteredCourses={filteredCourses}
+                handleCourseChange={handleCourseChange}
               />
-              <Popper open={isDropdownOpen} anchorEl={anchorEl} style={{ zIndex: 1 }}>
-                <ClickAwayListener onClickAway={handleClickAway}>
-                  <Paper style={{ maxHeight: 300, overflow: 'auto' }}>
-                    <MenuList>
-                      {filteredCourses.slice(0, 500).map((courseName, index) => (
-                        <MenuItem key={index} onClick={() => handleCourseChange(courseName)}>
-                          {courseName}
-                        </MenuItem>
-                      ))}
-                    </MenuList>
-                  </Paper>
-                </ClickAwayListener>
-              </Popper>
-            </FormControl>
-            {selectedCourse && (
-              <FormControl fullWidth sx={{ mt: 2 }}>
-                <InputLabel id="lecture-dropdown-label">בחר הרצאה</InputLabel>
-                <Select
-                  labelId="lecture-dropdown-label"
-                  id="lecture-dropdown"
-                  value={selectedLecture}
-                  onChange={handleLectureChange}
-                  label="בחר הרצאה"
-                >
-                  {filteredLectures.map((lecture) => {
-                    const adjustedLecture = adjustLectureDate(lecture);
-                    return (
-                      <MenuItem key={lecture.id} value={lecture.id}>
-                        {`${Intl.DateTimeFormat('en-US', {
-                          weekday: 'short',
-                        }).format(adjustedLecture.startDate)}, ${formatTime(adjustedLecture.startDate)} - ${formatTime(adjustedLecture.endDate)}, ${
-                          lecture.type
-                        }, ${lecture.lecturer}`}
-                      </MenuItem>
-                    );
-                  })}
-                </Select>
-              </FormControl>
-            )}
-            <FormControl fullWidth sx={{ mt: 2 }}>
-              <InputLabel id="added-lectures-dropdown-label">הרצאות נבחרות (לחץ למחיקה)</InputLabel>
-              <Select
-                labelId="added-lectures-dropdown-label"
-                id="added-lectures-dropdown"
-                value=""
-                onChange={(e) => handleRemoveAppointment(e.target.value)} // Use the value to remove the appointment
-                label="Added Lectures"
-                renderValue={(selected) => {
-                  if (selected.length === 0) {
-                    return <em>Added Lectures</em>;
-                  }
-                  return selected.join(', ');
-                }}
-              >
-                {data.map((appointment) => (
-                  <MenuItem
-                    key={appointment.id}
-                    value={appointment.id}
-                    style={{
-                      backgroundColor: typeToColorMap[appointment.type],
-                      color: theme.palette.getContrastText(typeToColorMap[appointment.type]),
-                    }}
-                  >
-                    {appointment.title} - {appointment.type} ({formatTime(new Date(appointment.startDate))} - {formatTime(new Date(appointment.endDate))})
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <Box mt={2}>
+              <LectureSelector
+                selectedCourse={selectedCourse}
+                selectedLecture={selectedLecture}
+                handleLectureChange={handleLectureChange}
+                filteredLectures={filteredLectures}
+                adjustLectureDate={adjustLectureDate}
+                formatTime={formatTime}
+                getLectureById={getLectureById} 
+              />
+              <AddedLectures
+                data={data}
+                handleRemoveAppointment={handleRemoveAppointment}
+                typeToColorMap={typeToColorMap}
+                theme={theme}
+                formatTime={formatTime}
+              />
+            </Box>
+
+            <Box sx={{ mt: 2, mb: 2, px: 2 }}>
               <Button
                 variant="contained"
                 color="primary"
-                fullWidth={isMobile}
+                onClick={handleOpenCustomAppointmentForm}
+                sx={{ mb: 2 }}
+              >
+                Add Custom Appointment
+              </Button>
+              <Button
+                variant="contained"
+                color="primary"
                 onClick={handleExportToImage}
+                sx={{ mb: 2 }}
               >
                 Export Schedule to Image
+              </Button>
+              <Button
+                variant="contained"
+                color="secondary" // Customize this color
+                onClick={handleExportToExcel}
+              >
+                Export Schedule to Excel
               </Button>
             </Box>
           </Box>
         </Box>
-        <Box sx={{ backgroundColor: 'var(--footer-bg-color)' }}>
-          <Box mt={2} textAlign="center" className="footer-container">
-            <Typography variant="body2" className="footer-text">
-              This site is not affiliated with Braude College. Made by Niko. Wanna help me out? <span>Buy me a coffee when you see me</span>. <a href="mailto:nikosav98@gmail.com">Report a problem.</a>
-            </Typography>
-          </Box>
-        </Box>
+        <Footer />
       </Box>
+      <CustomAppointmentForm
+        open={isCustomAppointmentFormOpen}
+        onClose={handleCloseCustomAppointmentForm}
+        onSave={handleSaveCustomAppointment}
+      />
     </ThemeProvider>
   );
 };
