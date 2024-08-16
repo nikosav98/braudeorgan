@@ -14,6 +14,11 @@ const LectureSelector = ({
 }) => {
   const renderedLectures = new Set(); // To keep track of rendered lectures
 
+  // Function to clear hovered appointments when the mouse leaves the dropdown
+  const handleMouseLeaveDropdown = () => {
+    onHoverLecture(null);  // Clear the hovered lectures
+  };
+
   return (
     selectedCourse && (
       <FormControl fullWidth sx={{ mt: 2 }}>
@@ -24,6 +29,7 @@ const LectureSelector = ({
           value={selectedLecture}
           onChange={(event) => handleLectureChange(event.target.value)}
           label="בחר הרצאה"
+          onMouseLeave={handleMouseLeaveDropdown}  // Add this handler to clear the hover
         >
           {filteredLectures.map((lecture) => {
             // Skip if the lecture has already been rendered

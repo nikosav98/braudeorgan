@@ -13,9 +13,41 @@ body {
   min-height: 100vh;
 }
 
-html, body {
-  height: 100%;
+body, html {
   margin: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+#root {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+footer {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  height: 60px; /* Adjust the height to your needs */
+  background-color: var(--footer-bg-color);
+}
+
+.footer-container {
+  text-align: center;
+  font-family: 'Roboto', sans-serif;
+  padding: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  height: 100%;
+  position: relative;
+}
+
+.footer-text {
+  color: white;
+  font-weight: 400;
+  font-size: 0.875rem;
+  line-height: 1.5;
 }
 
 .MuiTableCell-root {
@@ -23,26 +55,7 @@ html, body {
   border-bottom: 1px solid rgba(255, 255, 255, 0.12) !important;
 }
 
-footer {
-  color: white;
-}
 
-.footer-container {
-  text-align: center;
-  font-family: 'Roboto', sans-serif;
-  background-color: var(--footer-bg-color); /* Ensure this matches the site's background color */
-  padding: 1rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.12); /* Add a top border to separate */
-  flex-shrink: 0; /* Prevents the footer from shrinking */
-  height: 30px; /* Set a fixed height for the footer */
-}
-
-.footer-text {
-  color: white;
-  font-weight: 400;
-  font-size: 0.875rem; /* equivalent to variant="body2" */
-  line-height: 60px; /* Align text vertically within the fixed height */
-}
 
 .footer-text span {
   font-weight: 900; /* bold */

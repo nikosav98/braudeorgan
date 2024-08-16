@@ -105,9 +105,7 @@ const SchedulerApp = () => {
     localStorage.removeItem("scheduleData"); // Clear the local storage as well if needed
   };
 
-  const handleHoverLecture = (lectures) => {
-    setHoveredAppointments(lectures || []);
-  };
+  
 
   const handleOpenCustomAppointmentForm = () => {
     setIsCustomAppointmentFormOpen(true);
@@ -190,7 +188,15 @@ const SchedulerApp = () => {
       prevAddedCourses.filter((course) => course !== appointment.title)
     );
   };
-
+  
+  const handleHoverLecture = (lectures) => {
+    setHoveredAppointments(lectures || []);
+  };
+  
+  // Add this to the mouse leave event of the dropdown
+  const handleMouseLeaveDropdown = () => {
+    setHoveredAppointments([]);
+  };
   const handleAppointmentClick = (appointment) => {
     setSelectedAppointment(appointment);
   };
@@ -306,7 +312,7 @@ const SchedulerApp = () => {
   };
 
   const formatTime = (date) => {
-    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
   };
 
   const filteredLectures = initialAppointments.filter((lecture) => lecture.title === selectedCourse);
@@ -333,7 +339,7 @@ const SchedulerApp = () => {
               <ViewState currentDate={new Date()} />
               <WeekView
                 startDayHour={8}
-                endDayHour={20}
+                endDayHour={21}
                 cellDuration={60}
                 dayScaleCellComponent={DayScaleCell}
                 timeTableCellComponent={(props) => (
