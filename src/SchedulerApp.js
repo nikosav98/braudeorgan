@@ -7,7 +7,7 @@ import Footer from './Footer';
 import Paper from "@mui/material/Paper";
 import { ViewState } from "@devexpress/dx-react-scheduler";
 import { Scheduler, WeekView, Appointments } from "@devexpress/dx-react-scheduler-material-ui";
-import { Box, Button } from "@mui/material";
+import { Box, Button, Typography } from "@mui/material";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import { blue, green, orange, red } from "@mui/material/colors";
 import html2canvas from "html2canvas";
@@ -45,6 +45,36 @@ const dayMap = {
   "ש": 6,
 };
 
+const SplashScreen = ({ onDismiss }) => (
+  <Box
+    sx={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      backgroundColor: '#000',
+      color: '#fff',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 9999, // Ensure it's on top of everything
+    }}
+  >
+    <Typography variant="h4" sx={{ mb: 2, textAlign: 'center' }}>
+      Not currently compatible with mobile phones
+    </Typography>
+    <Button
+      variant="contained"
+      color="primary"
+      onClick={onDismiss}
+    >
+      Dismiss
+    </Button>
+  </Box>
+);
+
 const SchedulerApp = () => {
   const savedData = JSON.parse(localStorage.getItem("scheduleData")) || [];
   const [selectedCourse, setSelectedCourse] = useState("");
@@ -58,6 +88,13 @@ const SchedulerApp = () => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [isCustomAppointmentFormOpen, setIsCustomAppointmentFormOpen] = useState(false);
   const [hoveredAppointments, setHoveredAppointments] = useState([]);
+  const [isMobile, setIsMobile] = useState(false);
+  const [isSplashDismissed, setIsSplashDismissed] = useState(false);
+
+  useEffect(() => {
+    const isMobileDevice = /Mobi|Android/i.test(navigator.userAgent) && window.innerWidth <= 767;
+    setIsMobile(isMobileDevice);
+  }, []);
 
   useEffect(() => {
     localStorage.setItem("scheduleData", JSON.stringify(data));
@@ -84,9 +121,9 @@ const SchedulerApp = () => {
     setData((prevData) => [...prevData, newAppointment]);
   };
 
-  useEffect(() => {
-    localStorage.setItem("scheduleData", JSON.stringify(data));
-  }, [data]);
+  const handleDismissSplash = () => {
+    setIsSplashDismissed(true);
+  };
 
   const handleCourseChange = (courseName) => {
     setSelectedCourse(courseName);
@@ -281,6 +318,10 @@ const SchedulerApp = () => {
   const handleClickAway = () => {
     setIsDropdownOpen(false);
   };
+
+  if (isMobile && !isSplashDismissed) {
+    return <SplashScreen onDismiss={handleDismissSplash} />;
+  }
 
   return (
     <ThemeProvider theme={theme}>
