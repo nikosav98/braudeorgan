@@ -283,7 +283,7 @@ const SchedulerApp = () => {
   };
 
   return (
-    <ThemeProvider theme={theme}>// TEST
+    <ThemeProvider theme={theme}>
       <Box  display="flex" flexDirection="column" height="100%" sx={{ backgroundColor: theme.palette.background.default }}>
         <Header allowConflicts={allowConflicts} handleToggleChange={handleToggleChange} />
         <Box display="flex" flexDirection="row" justifyContent="space-between" flexGrow={1}>
