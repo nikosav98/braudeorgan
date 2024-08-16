@@ -21,6 +21,7 @@ const CustomAppointment = ({
   handleCancelDeletion, 
   handleColorChange,
   handleSaveNote,
+  preview = false, // Add preview prop
 }) => {
   const titleRef = useRef(null);
   const detailsRef = useRef(null);
@@ -66,9 +67,9 @@ const CustomAppointment = ({
         padding: '0px',
         margin: '-5px', 
         borderRadius: '0px',
-        border: '2px solid',
+        border: preview ? '1px dashed' : '2px solid',
         fontSize: '12px',
-        backgroundColor: data.backgroundColor || 'transparent',
+        backgroundColor: preview ? 'rgba(0, 0, 255, 0.3)' : (data.backgroundColor || 'transparent'),
         height: isShortLesson ? 'auto' : '100%', 
         overflow: 'hidden',
         display: 'flex',
@@ -77,8 +78,10 @@ const CustomAppointment = ({
         justifyContent: 'center',
         alignItems: 'center',
         textAlign: 'center',
+        opacity: preview ? 0.5 : 1, // Set opacity for preview
+        pointerEvents: preview ? 'none' : 'auto', // Disable interactions for preview
       }}
-      onClick={() => handleAppointmentClick(data)}
+      onClick={() => !preview && handleAppointmentClick(data)} // Disable click in preview mode
     >
       <div ref={titleRef} className="appointment-title" style={{ fontSize: '14px', fontWeight: 'bold' }}>
         {data.title}
@@ -95,7 +98,7 @@ const CustomAppointment = ({
           <div className="appointment-details">{data.lecturer}</div>
         </>
       )}
-      {isSelected && (
+      {isSelected && !preview && ( // Show actions only if not in preview mode
         <>
           <Tooltip title="Remove" className="appointment-tooltip">
             <IconButton
@@ -200,7 +203,6 @@ const CustomAppointment = ({
         </>
       )}
 
-      {/* Notes Dialog */}
       <Dialog open={isNotesDialogOpen} onClose={handleCloseNotesDialog}>
         <DialogTitle>Edit Note</DialogTitle>
         <DialogContent>

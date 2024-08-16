@@ -14,7 +14,7 @@ import html2canvas from "html2canvas";
 import CustomAppointment from "./CustomAppointment";
 import CustomAppointmentForm from './CustomAppointmentForm';
 import { saveAs } from "file-saver";
-import * as XLSX from 'xlsx'; // Import the XLSX library
+import * as XLSX from 'xlsx';
 import { appointments as initialAppointments } from "./appointments";
 import DayScaleCell from './DayScaleCell';
 
@@ -49,8 +49,6 @@ const SchedulerApp = () => {
   const savedData = JSON.parse(localStorage.getItem("scheduleData")) || [];
   const [selectedCourse, setSelectedCourse] = useState("");
   const [selectedLecture, setSelectedLecture] = useState("");
-  const [selectedLectureType, setSelectedLectureType] = useState("");
-  const [selectedDayOfWeek, setSelectedDayOfWeek] = useState("");
   const [data, setData] = useState(savedData);
   const [addedCourses, setAddedCourses] = useState([]);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
@@ -59,6 +57,11 @@ const SchedulerApp = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
   const [isCustomAppointmentFormOpen, setIsCustomAppointmentFormOpen] = useState(false);
+  const [hoveredAppointments, setHoveredAppointments] = useState([]);
+
+  const handleHoverLecture = (lectures) => {
+    setHoveredAppointments(lectures || []);
+  };
 
   const handleOpenCustomAppointmentForm = () => {
     setIsCustomAppointmentFormOpen(true);
@@ -79,7 +82,6 @@ const SchedulerApp = () => {
   const handleCourseChange = (courseName) => {
     setSelectedCourse(courseName);
     setSelectedLecture("");
-    setSelectedLectureType("");
     setSearchInput(courseName); 
     setIsDropdownOpen(false);
   };
@@ -94,22 +96,21 @@ const SchedulerApp = () => {
 
   const handleLectureChange = (value) => {
     const lectureIds = value.split(','); // Split the value to get individual IDs
-  
     const lectures = lectureIds.map((id) => getLectureById(id));
     const adjustedLectures = lectures.map(adjustLectureDate);
-  
+
     if (!allowConflicts) {
       const hasConflict = adjustedLectures.some((adjustedLecture) => {
         const courseAppointments = data.filter((app) => app.title === adjustedLecture.title);
         return courseAppointments.some((app) => app.type === adjustedLecture.type);
       });
-  
+
       if (hasConflict) {
         alert(`לא ניתן לבחור יותר מאחד מאותו סוג של שיעור.`);
         return;
       }
     }
-  
+
     const newAppointments = adjustedLectures.map((adjustedLecture) => ({
       id: adjustedLecture.id,
       title: adjustedLecture.title,
@@ -120,9 +121,10 @@ const SchedulerApp = () => {
       lecturer: adjustedLecture.lecturer,
       backgroundColor: typeToColorMap[adjustedLecture.type],
     }));
-  
+
     setData((prevData) => [...prevData, ...newAppointments]);
-  
+    setHoveredAppointments([]);  // Clear the hovered appointments when one is selected
+
     setAddedCourses((prevAddedCourses) => [
       ...prevAddedCourses,
       ...newAppointments.map((appointment) => appointment.title),
@@ -221,8 +223,8 @@ const SchedulerApp = () => {
         "Lecturer": appointment.lecturer,
         "Type": appointment.type,
         "Notes": appointment.customText || "",
-        dayOfWeekIndex: startDate.getDay(), // Add an index for day of the week sorting
-        startTime: startDate.getTime(), // Add a numeric time value for time sorting
+        dayOfWeekIndex: startDate.getDay(),
+        startTime: startDate.getTime(),
       };
     }).filter(appointment => appointment !== null);
   
@@ -231,15 +233,13 @@ const SchedulerApp = () => {
       return;
     }
   
-    // Sort the data by day of the week and then by start time
     const sortedData = formattedData.sort((a, b) => {
       if (a.dayOfWeekIndex !== b.dayOfWeekIndex) {
-        return a.dayOfWeekIndex - b.dayOfWeekIndex; // Sort by day of the week
+        return a.dayOfWeekIndex - b.dayOfWeekIndex;
       }
-      return a.startTime - b.startTime; // Then sort by start time
+      return a.startTime - b.startTime;
     });
   
-    // Remove the helper properties after sorting
     sortedData.forEach(item => {
       delete item.dayOfWeekIndex;
       delete item.startTime;
@@ -258,7 +258,6 @@ const SchedulerApp = () => {
   
     XLSX.writeFile(workbook, "schedule.xlsx");
   };
-  
 
   const formatTime = (date) => {
     return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
@@ -274,16 +273,13 @@ const SchedulerApp = () => {
     setIsDropdownOpen(false);
   };
 
- return (
+  return (
     <ThemeProvider theme={theme}>
       <Box display="flex" flexDirection="column" height="100vh" sx={{ backgroundColor: theme.palette.background.default }}>
-        <Header 
-          allowConflicts={allowConflicts} 
-          handleToggleChange={handleToggleChange} 
-        />
+        <Header allowConflicts={allowConflicts} handleToggleChange={handleToggleChange} />
         <Box display="flex" flexDirection="row" justifyContent="space-between" flexGrow={1}>
           <Paper id="scheduler-container" style={{ flexGrow: 1, direction: 'rtl' }}>
-            <Scheduler data={data}>
+            <Scheduler data={[...data, ...hoveredAppointments]}>
               <ViewState currentDate={new Date()} />
               <WeekView
                 startDayHour={8}
@@ -342,7 +338,9 @@ const SchedulerApp = () => {
                 filteredLectures={filteredLectures}
                 adjustLectureDate={adjustLectureDate}
                 formatTime={formatTime}
-                getLectureById={getLectureById} 
+                getLectureById={getLectureById}
+                onHoverLecture={handleHoverLecture} // Pass the hover handler
+                isLectureAdded={isLectureAdded} // Pass the function to check if lecture is added
               />
               <AddedLectures
                 data={data}
@@ -352,29 +350,14 @@ const SchedulerApp = () => {
                 formatTime={formatTime}
               />
             </Box>
-
             <Box sx={{ mt: 2, mb: 2, px: 2 }}>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={handleOpenCustomAppointmentForm}
-                sx={{ mb: 2 }}
-              >
+              <Button variant="contained" color="primary" onClick={handleOpenCustomAppointmentForm} sx={{ mb: 2 }}>
                 Add Custom Appointment
               </Button>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={handleExportToImage}
-                sx={{ mb: 2 }}
-              >
+              <Button variant="contained" color="primary" onClick={handleExportToImage} sx={{ mb: 2 }}>
                 Export Schedule to Image
               </Button>
-              <Button
-                variant="contained"
-                color="secondary" // Customize this color
-                onClick={handleExportToExcel}
-              >
+              <Button variant="contained" color="secondary" onClick={handleExportToExcel}>
                 Export Schedule to Excel
               </Button>
             </Box>
@@ -382,11 +365,7 @@ const SchedulerApp = () => {
         </Box>
         <Footer />
       </Box>
-      <CustomAppointmentForm
-        open={isCustomAppointmentFormOpen}
-        onClose={handleCloseCustomAppointmentForm}
-        onSave={handleSaveCustomAppointment}
-      />
+      <CustomAppointmentForm open={isCustomAppointmentFormOpen} onClose={handleCloseCustomAppointmentForm} onSave={handleSaveCustomAppointment} />
     </ThemeProvider>
   );
 };
