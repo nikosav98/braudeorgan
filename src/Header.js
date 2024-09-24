@@ -6,7 +6,7 @@ const Header = ({ isMobile, allowConflicts, handleToggleChange }) => (
     <Toolbar>
       <Box flexGrow={1} textAlign={isMobile ? 'center' : 'left'}>
         <Typography variant="h6" sx={{ fontFamily: 'Montserrat, sans-serif'}}>
-          {isMobile ? 'Brauade Organ' : 'Braude Schedule Organizer'}
+          {isMobile ? 'Brauade Organ' : 'Braude Schedule Organizer - updated 24/09/24'}
         </Typography>
       </Box>
       {!isMobile && (

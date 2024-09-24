@@ -31,7 +31,7 @@ const Footer = ({ onDeleteAll }) => {
         sx={{ 
           position: 'absolute', 
           right: '10px', 
-          top: '30%',  
+          top: '50%',  
           zIndex: 1
         }} 
         onClick={handleClickOpen}

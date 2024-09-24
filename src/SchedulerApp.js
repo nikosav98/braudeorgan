@@ -315,7 +315,7 @@ const SchedulerApp = () => {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
   };
 
-  const filteredLectures = initialAppointments.filter((lecture) => lecture.title === selectedCourse);
+  const filteredLectures = (initialAppointments || []).filter((lecture) => lecture.title === selectedCourse);
 
   const filteredCourses = Array.from(new Set(initialAppointments.map((lecture) => lecture.title))).filter((courseName) =>
     courseName.toLowerCase().includes(searchInput.toLowerCase())
