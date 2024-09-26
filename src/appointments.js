@@ -11681,5 +11681,39 @@ export const appointments = [
         "day": "א",
         "linkedId": null
     },
-    ];
+{
+    "title": "תכנות מערכות מתקדם בפייתון (51031)",
+    "startDate": new Date(2024, 5, 25, 11, 30),
+    "endDate": new Date(2024, 5, 25, 13, 50),
+    "id": "729107",
+    "location": "302 EM",
+    "lecturer": "ד\"ר בדארנה מוראד",
+    "type": "exercise",
+    "day": "ה",
+    "linkedId": null
+},
+{
+    "title": "תכנות מערכות מתקדם בפייתון (51031)",
+    "startDate": new Date(2024, 5, 25, 8, 30),
+    "endDate": new Date(2024, 5, 25, 10, 30),
+    "id": "207465",
+    "location": "308 M",
+    "lecturer": "ד\"ר בדארנה מוראד",
+    "type": "exercise",
+    "day": "ד",
+    "linkedId": null
+},
+{
+    "title": "תכנות מערכות מתקדם בפייתון (51031)",
+    "startDate": new Date(2024, 5, 25, 9, 30),
+    "endDate": new Date(2024, 5, 25, 11, 30),
+    "id": "992490",
+    "location": "302 EM",
+    "lecturer": "ד\"ר בדארנה מוראד",
+    "type": "lecture",
+    "day": "ה",
+    "linkedId": null
+},
+];
+
     
