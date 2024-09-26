@@ -11714,6 +11714,106 @@ export const appointments = [
     "day": "ה",
     "linkedId": null
 },
+{
+    "title": "ישומי MATLAB באלקטרוניקה (31476)",
+    "startDate": new Date(2024, 5, 25, 8, 30),
+    "endDate": new Date(2024, 5, 25, 9, 30),
+    "id": "263232",
+    "location": "305 EM מע' אלקט'",
+    "lecturer": "ד\"ר וולפסון עירא",
+    "type": "lecture",
+    "day": "ה",
+    "linkedId": null
+},
+{
+    "title": "ישומי MATLAB באלקטרוניקה (31476)",
+    "startDate": new Date(2024, 5, 25, 14, 50),
+    "endDate": new Date(2024, 5, 25, 15, 50),
+    "id": "528703",
+    "location": "305 EM מע' אלקט'",
+    "lecturer": "ד\"ר וולפסון עירא",
+    "type": "lab",
+    "day": "ג",
+    "linkedId": null
+},
+{
+    "title": "ישומי MATLAB באלקטרוניקה (31476)",
+    "startDate": new Date(2024, 5, 25, 16, 50),
+    "endDate": new Date(2024, 5, 25, 18, 50),
+    "id": "911038",
+    "location": "305 EM מע' אלקט'",
+    "lecturer": "ד\"ר וולפסון עירא",
+    "type": "lab",
+    "day": "ג",
+    "linkedId": null
+},
+{
+    "title": "ישומי MATLAB באלקטרוניקה (31476)",
+    "startDate": new Date(2024, 5, 25, 10, 30),
+    "endDate": new Date(2024, 5, 25, 12, 20),
+    "id": "483607",
+    "location": "305 EM מע' אלקט'",
+    "lecturer": "ד\"ר וולפסון עירא",
+    "type": "exercise",
+    "day": "ה",
+    "linkedId": null
+},
+{
+    "title": "ישומי MATLAB באלקטרוניקה (31476)",
+    "startDate": new Date(2024, 5, 25, 15, 50),
+    "endDate": new Date(2024, 5, 25, 16, 50),
+    "id": "744602",
+    "location": "305 EM מע' אלקט'",
+    "lecturer": "ד\"ר וולפסון עירא",
+    "type": "exercise",
+    "day": "ג",
+    "linkedId": null
+},
+{
+    "title": "ישומי MATLAB באלקטרוניקה (31476)",
+    "startDate": new Date(2024, 5, 25, 9, 30),
+    "endDate": new Date(2024, 5, 25, 10, 30),
+    "id": "585689",
+    "location": "305 EM מע' אלקט'",
+    "lecturer": "ד\"ר וולפסון עירא",
+    "type": "lecture",
+    "day": "ה",
+    "linkedId": null
+},
+{
+    "title": "פרויקט תחרותי (31017)",
+    "startDate": new Date(2024, 5, 25, 15, 50),
+    "endDate": new Date(2024, 5, 25, 18, 50),
+    "id": "300272",
+    "location": "301 EM מע' תקשורת",
+    "lecturer": "ד\"ר כץ נורברטו אדריאן",
+    "type": "lecture",
+    "day": "א",
+    "linkedId": null
+},
+{
+    "title": "פרויקט תחרותי (31017)",
+    "startDate": new Date(2024, 5, 25, 9, 30),
+    "endDate": new Date(2024, 5, 25, 12, 20),
+    "id": "985076",
+    "location": "306 EM מע' VLSI",
+    "lecturer": "ד\"ר זורע פנחס",
+    "type": "lecture",
+    "day": "ג",
+    "linkedId": null
+},
+{
+    "title": "פרויקט תחרותי (31017)",
+    "startDate": new Date(2024, 5, 25, 13, 50),
+    "endDate": new Date(2024, 5, 25, 16, 50),
+    "id": "150762",
+    "location": "305 EM מע' אלקט'",
+    "lecturer": "מר זליכה רועי",
+    "type": "lecture",
+    "day": "ה",
+    "linkedId": null
+},
 ];
+
 
     
